@@ -284,6 +284,9 @@
 .ce-media:hover .ce-del{display:inline-flex}
 .ce-actions{position:sticky;bottom:0;z-index:6;display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:12px}
 @media(max-width:820px){.ce-doc{padding:16px}.ce-actions{flex-wrap:wrap}}
+.ce-modebar{display:flex;gap:4px;align-items:center;margin-bottom:10px}
+.ce-tab{background:var(--panel);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 14px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.ce-tab.active{background:#4f46e5;border-color:#4f46e5;color:#fff}
 </style>
 
 </head>
@@ -991,14 +994,24 @@ function ceSerialize(bodyEl){
   clone.querySelectorAll(".ce-del").forEach(function(b){b.remove();});
   return clone.innerHTML.replace(/\s+$/,"");
 }
+function portalSlugify(t){return (t||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
+function ceMode(m){var p=document.getElementById("cePreview"),e=document.getElementById("ceEdit"),tp=document.getElementById("ceTabPrev"),te=document.getElementById("ceTabEdit");if(!p||!e)return;if(m==="edit"){e.style.display="";p.style.display="none";if(te)te.classList.add("active");if(tp)tp.classList.remove("active");}else{p.style.display="";e.style.display="none";if(tp)tp.classList.add("active");if(te)te.classList.remove("active");var f=document.getElementById("cePrevFrame");if(f&&f.dataset.src&&!f.src){f.src=f.dataset.src;}}}
 async function ladeContent(sid){const box=$("#contentBox");if(!box)return;if(!sid){box.innerHTML="";return;}
-  try{const res=await Promise.all([sb.from('inhalts_artikel').select('*').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1),sb.from('software_bilder').select('*').eq('software_id',sid).order('reihenfolge',{ascending:true})]);
+  try{const res=await Promise.all([sb.from('inhalts_artikel').select('*, software:software_id(kategorie,name)').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1),sb.from('software_bilder').select('*').eq('software_id',sid).order('reihenfolge',{ascending:true})]);
     const a=res[0].data&&res[0].data[0];window._artikel=a;window._ctBilder=res[1].data||[];
     if(!a){box.innerHTML=emptyTab("ti-article","Noch kein Content","Für diese Software wurde noch kein Portal-Artikel erzeugt.");return;}
     const art=(a.sektionen&&a.sektionen.artikel)||{};const abs=Array.isArray(art.abschnitte)?art.abschnitte:[];window._ctAbs=abs;
+    const live=a.inhalts_status==='live';const kat=(a.software&&a.software.kategorie)||"";
+    const purl=(live&&a.slug)?("https://staging.schober.media/"+portalSlugify(kat)+"/"+a.slug):"";window._ctPurl=purl;
     const nw=a.nw_punktzahl_v3!=null?a.nw_punktzahl_v3:(a.nw_punktzahl_v2!=null?a.nw_punktzahl_v2:a.nw_punktzahl_v1);
     let html='<div class="ce-wrap">';
-    html+='<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px"><b>'+esc(a.meta_title||a.ziel_schluesselwort||"Artikel")+'</b> · Status '+esc(a.inhalts_status||"—")+(nw!=null?' · NeuronWriter '+nw:'')+(a.ziel_url?' · <a href="'+esc(a.ziel_url)+'" target="_blank" rel="noopener" style="color:var(--accent-ink)">Live ansehen</a>':'')+'</div>';
+    html+='<div class="ce-modebar"><button id="ceTabPrev" class="ce-tab active" onclick="ceMode(\'prev\')"><i class="ti ti-eye"></i> Vorschau (echte Seite)</button><button id="ceTabEdit" class="ce-tab" onclick="ceMode(\'edit\')"><i class="ti ti-edit"></i> Bearbeiten</button>'+(purl?'<a href="'+purl+'" target="_blank" rel="noopener" class="tb" style="margin-left:auto;text-decoration:none"><i class="ti ti-external-link"></i> Im Browser öffnen</a>':'<span style="margin-left:auto;font-size:11.5px;color:var(--muted)">Status: '+esc(a.inhalts_status||"—")+'</span>')+'</div>';
+    html+='<div id="cePreview">';
+    if(purl)html+='<iframe id="cePrevFrame" data-src="'+esc(purl)+'" style="width:100%;height:74vh;border:1px solid var(--line);border-radius:10px;background:#fff" referrerpolicy="no-referrer"></iframe>';
+    else html+='<div class="empty-tab" style="padding:34px"><i class="ti ti-eye-off"></i><b>Noch nicht veröffentlicht</b><div class="d">Die echte Seitenvorschau erscheint, sobald der Artikel veröffentlicht ist (Status „live"). Wechsle solange auf „Bearbeiten".</div></div>';
+    html+='</div>';
+    html+='<div id="ceEdit" style="display:none">';
+    html+='<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px"><b>'+esc(a.meta_title||a.ziel_schluesselwort||"Artikel")+'</b> · Status '+esc(a.inhalts_status||"—")+(nw!=null?' · NeuronWriter '+nw:'')+'</div>';
     html+='<div class="ce-toolbar">'
       +'<button onmousedown="event.preventDefault()" onclick="ceCmd(\'bold\')" title="Fett"><b>B</b></button>'
       +'<button onmousedown="event.preventDefault()" onclick="ceCmd(\'italic\')" title="Kursiv"><i>I</i></button>'
@@ -1013,12 +1026,13 @@ async function ladeContent(sid){const box=$("#contentBox");if(!box)return;if(!si
     html+='<div class="ce-doc" id="ceDoc">';
     html+=abs.map(function(ab,i){return '<div class="ce-sec" data-i="'+i+'" data-schluessel="'+esc(ab.schluessel||"")+'"><h2 contenteditable="true">'+esc(ab.ueberschrift||"")+'</h2><div class="ce-body" contenteditable="true">'+ceRenderPlaceholders(ab.html,window._ctBilder)+'</div></div>';}).join("");
     html+='</div>';
-    html+='<div class="ce-actions"><span style="font-size:12px;color:var(--muted)"><i class="ti ti-eye"></i> Visuelle Bearbeitung – Text direkt ändern, Medien per Toolbar. „Speichern" schreibt in die Quelle; das Live-Frontend wird beim Portal-Build aktualisiert.</span><span style="margin-left:auto"></span>'
+    html+='<div class="ce-actions"><span style="font-size:12px;color:var(--muted)"><i class="ti ti-eye"></i> Aktuell bearbeitbar: Fließtext &amp; Medien. Strukturierte Bausteine (Bewertung/Tarife/Pro-Contra) folgen.</span><span style="margin-left:auto"></span>'
       +'<button class="tb" onmousedown="event.preventDefault()" onclick="contentVerwerfen(\''+sid+'\')"><i class="ti ti-arrow-back-up"></i> Verwerfen</button>'
       +'<button class="tb primary" onmousedown="event.preventDefault()" onclick="contentPublish(\''+sid+'\')"><i class="ti ti-cloud-upload"></i> Speichern &amp; veröffentlichen</button></div>';
-    html+='</div>';
+    html+='</div></div>';
     box.innerHTML=html;
     document.querySelectorAll("#ceDoc .ce-body, #ceDoc h2[contenteditable]").forEach(function(el){el.addEventListener("keyup",ceSaveRange);el.addEventListener("mouseup",ceSaveRange);});
+    ceMode(live?'prev':'edit');
   }catch(e){box.innerHTML=emptyTab("ti-alert-triangle","Fehler","Content konnte nicht geladen werden: "+esc(e&&e.message?e.message:String(e)));}
 }
 function ceSaveRange(){var sel=window.getSelection();if(sel&&sel.rangeCount){var r=sel.getRangeAt(0);var n=r.commonAncestorContainer;while(n&&n.nodeType===3)n=n.parentNode;if(n&&n.closest&&n.closest(".ce-body"))window._ceRange=r.cloneRange();}}
