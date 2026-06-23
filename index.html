@@ -260,7 +260,32 @@
 .yt-arrow{display:flex;align-items:center;color:var(--muted);flex:none}
 @keyframes ytspin{to{transform:rotate(360deg)}}
 @media(max-width:820px){.yt-arrow{display:none}.yt-step{flex:1 1 100%}}
+.ce-toolbar{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;margin-bottom:10px}
+.ce-toolbar button{background:var(--panel);border:1px solid var(--line);border-radius:6px;height:30px;min-width:32px;padding:0 9px;cursor:pointer;color:var(--ink);font-size:13px;display:inline-flex;align-items:center;gap:4px}
+.ce-toolbar button:hover{border-color:#4f46e5}
+.ce-toolbar .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+.ce-doc{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:26px 30px;max-width:800px;margin:0 auto}
+.ce-doc h2{font-size:21px;font-weight:700;margin:26px 0 10px;outline:none;border-radius:5px;padding:2px 4px;line-height:1.3}
+.ce-doc h2:first-child{margin-top:0}
+.ce-doc h2:focus{background:var(--panel2)}
+.ce-body{outline:none;font-size:15px;line-height:1.75;color:var(--ink)}
+.ce-body p{margin:0 0 14px}
+.ce-body h3{font-size:17px;font-weight:600;margin:18px 0 8px}
+.ce-body ul,.ce-body ol{margin:0 0 14px;padding-left:22px}
+.ce-body li{margin:5px 0}
+.ce-body a{color:var(--accent-ink);text-decoration:underline}
+.ce-media{position:relative;margin:18px 0;border:1px solid transparent;border-radius:10px}
+.ce-media img{max-width:100%;border-radius:10px;display:block}
+.ce-vid{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+.ce-vid iframe{width:100%;height:100%;border:0;display:block}
+.ce-cap{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+.ce-del{position:absolute;top:8px;right:8px;background:rgba(15,18,25,.82);color:#fff;border:none;border-radius:7px;height:30px;padding:0 11px;cursor:pointer;font-size:12px;align-items:center;gap:5px;display:none}
+.ce-media:hover{border-color:#4f46e5}
+.ce-media:hover .ce-del{display:inline-flex}
+.ce-actions{position:sticky;bottom:0;z-index:6;display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:12px}
+@media(max-width:820px){.ce-doc{padding:16px}.ce-actions{flex-wrap:wrap}}
 </style>
+
 </head>
 <body>
 <div id="loginGate" style="position:fixed;inset:0;background:#f3f5f8;display:none;place-items:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif">
@@ -954,24 +979,60 @@ function tabFaelle(r){const d=r._d||{};if(d.lade)return emptyTab("ti-loader-2","
   return head+`<table class="dtbl fix"><thead><tr><th>Anwendungsfall / Zielgruppe</th><th>Beschreibung</th><th style="width:74px"></th></tr></thead><tbody>${rows.map(function(x){return `<tr><td style="font-weight:500">${esc(x.titel||x.zielgruppe||"—")}${(x.titel&&x.zielgruppe)?'<div style="font-size:11px;color:var(--muted)">'+esc(x.zielgruppe)+'</div>':''}</td><td style="color:var(--muted)">${esc(x.beschreibung||"")}</td><td style="text-align:right;white-space:nowrap">${childActs('anwendungsfaelle',x.anwendungsfall_id)}</td></tr>`;}).join("")}</tbody></table>`;}
 function tabBew(r){return bwTool(r);}
 function tabContent(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeContent(sid);},0);return '<div id="contentBox"><div style="padding:32px;color:var(--muted)">Lade Content-Stand …</div></div>';}
+function ceRenderPlaceholders(html,bilder){
+  html=String(html||"");
+  html=html.replace(/\[\[bild:([^\]]+)\]\]/g,function(m,key){key=key.trim();var b=(bilder||[]).find(function(x){return x.content_key===key;});var src=b?b.original_url:"";var cap=b?(b.dateiname||""):"";return '<figure class="ce-media" contenteditable="false" data-bild="'+esc(key)+'"><img src="'+esc(src||"")+'" referrerpolicy="no-referrer" alt="">'+(cap?'<div class="ce-cap">'+esc(cap)+'</div>':'')+'<button class="ce-del" contenteditable="false" onmousedown="event.preventDefault()" onclick="ceMediaDel(this)"><i class="ti ti-trash"></i> entfernen</button></figure>';});
+  html=html.replace(/\[\[video:([^\]]+)\]\]/g,function(m,id){id=id.trim();return '<figure class="ce-media" contenteditable="false" data-video="'+esc(id)+'"><div class="ce-vid"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" allowfullscreen loading="lazy"></iframe></div><button class="ce-del" contenteditable="false" onmousedown="event.preventDefault()" onclick="ceMediaDel(this)"><i class="ti ti-trash"></i> entfernen</button></figure>';});
+  return html;
+}
+function ceSerialize(bodyEl){
+  var clone=bodyEl.cloneNode(true);
+  clone.querySelectorAll("figure.ce-media").forEach(function(f){var ph="";if(f.dataset.bild)ph="[[bild:"+f.dataset.bild+"]]";else if(f.dataset.video)ph="[[video:"+f.dataset.video+"]]";var p=document.createElement("p");p.textContent=ph;f.replaceWith(p);});
+  clone.querySelectorAll(".ce-del").forEach(function(b){b.remove();});
+  return clone.innerHTML.replace(/\s+$/,"");
+}
 async function ladeContent(sid){const box=$("#contentBox");if(!box)return;if(!sid){box.innerHTML="";return;}
-  try{const res=await Promise.all([sb.from('inhalts_artikel').select('*').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1),sb.from('software_bilder').select('content_key,rolle,dateiname').eq('software_id',sid).eq('rolle','inhalt')]);
-    const a=res[0].data&&res[0].data[0];window._artikel=a;const inhaltBilder=res[1].data||[];
-    if(!a){box.innerHTML=emptyTab("ti-article","Noch kein Content","Für diese Software wurde noch kein Portal-Artikel erzeugt (Phase „Content“).");return;}
-    const art=(a.sektionen&&a.sektionen.artikel)||{};const abs=Array.isArray(art.abschnitte)?art.abschnitte:[];
-    const nw=a.nw_punktzahl_v3!=null?a.nw_punktzahl_v3:(a.nw_punktzahl_v2!=null?a.nw_punktzahl_v2:a.nw_punktzahl_v1);const live=a.inhalts_status==='live'||!!a.erstveroeffentlicht_am;
-    let html='<div class="kpi"><div class="b"><div class="n">'+abs.length+'</div><div class="l">Abschnitte</div></div><div class="b"><div class="n">'+esc(a.inhalts_status||"—")+'</div><div class="l">Status</div></div><div class="b"><div class="n">'+(nw!=null?nw:"—")+'</div><div class="l">NeuronWriter</div></div><div class="b"><div class="n">'+(live?"ja":"nein")+'</div><div class="l">veröffentlicht</div></div></div>';
-    if(a.meta_title)html+='<div style="font-size:12.5px;font-weight:600;margin:0 0 4px">'+esc(a.meta_title)+'</div>';
-    if(a.ziel_url)html+='<div style="font-size:12px;color:var(--muted);margin:0 0 12px">URL: <a href="'+esc(a.ziel_url)+'" target="_blank" rel="noopener" style="color:var(--accent-ink)">'+esc(a.ziel_url)+'</a></div>';
-    html+='<div class="fgrp">Bild-Platzhalter</div>';
-    if(!inhaltBilder.length){html+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Noch keine Inhalt-Bilder. Im Tab <b>Bilder</b> ein Bild auf Rolle <b>Inhalt</b> setzen und einen <b>content_key</b> vergeben – es erscheint dann hier als einfügbarer Platzhalter.</div>';}
-    else{html+='<div style="font-size:12px;color:var(--muted);margin:0 0 8px">Platzhalter anklicken zum Kopieren, dann unten an der gewünschten Stelle im Abschnitt einfügen:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">'+inhaltBilder.map(function(b){if(!b.content_key){return '<span style="font-size:11px;color:var(--bad);border:1px solid currentColor;border-radius:5px;padding:2px 6px">'+esc(b.dateiname||"Bild")+' (kein content_key)</span>';}return '<span class="wb-cand" style="cursor:pointer" onclick="copyText(\'[[bild:'+b.content_key+']]\')" title="'+esc(b.dateiname||"")+'"><i class="ti ti-copy"></i> [[bild:'+esc(b.content_key)+']]</span>';}).join("")+'</div>';}
-    if(abs.length){html+='<div class="fgrp">Artikel-Abschnitte – Platzhalter [[bild:key]] direkt im Text platzieren</div>'+abs.map(function(ab,i){const cnt=(String(ab.html||"").match(/\[\[bild:[^\]]+\]\]/g)||[]);return '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12.5px;margin-bottom:4px">'+esc(ab.ueberschrift||("Abschnitt "+(i+1)))+(cnt.length?' <span style="color:var(--muted);font-weight:400">· '+cnt.length+' Bild platziert</span>':'')+'</div><textarea id="abs_'+i+'" style="width:100%;box-sizing:border-box;min-height:130px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;line-height:1.55;resize:vertical">'+esc(ab.html||"")+'</textarea><div style="text-align:right;margin-top:5px"><button class="tb primary" onclick="contentSaveAbschnitt('+i+')"><i class="ti ti-device-floppy"></i> Abschnitt speichern</button></div></div>';}).join("");}
-    else{html+='<div style="font-size:12px;color:var(--muted)">Dieser Artikel hat keine bearbeitbaren Fließtext-Abschnitte.</div>';}
+  try{const res=await Promise.all([sb.from('inhalts_artikel').select('*').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1),sb.from('software_bilder').select('*').eq('software_id',sid).order('reihenfolge',{ascending:true})]);
+    const a=res[0].data&&res[0].data[0];window._artikel=a;window._ctBilder=res[1].data||[];
+    if(!a){box.innerHTML=emptyTab("ti-article","Noch kein Content","Für diese Software wurde noch kein Portal-Artikel erzeugt.");return;}
+    const art=(a.sektionen&&a.sektionen.artikel)||{};const abs=Array.isArray(art.abschnitte)?art.abschnitte:[];window._ctAbs=abs;
+    const nw=a.nw_punktzahl_v3!=null?a.nw_punktzahl_v3:(a.nw_punktzahl_v2!=null?a.nw_punktzahl_v2:a.nw_punktzahl_v1);
+    let html='<div class="ce-wrap">';
+    html+='<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px"><b>'+esc(a.meta_title||a.ziel_schluesselwort||"Artikel")+'</b> · Status '+esc(a.inhalts_status||"—")+(nw!=null?' · NeuronWriter '+nw:'')+(a.ziel_url?' · <a href="'+esc(a.ziel_url)+'" target="_blank" rel="noopener" style="color:var(--accent-ink)">Live ansehen</a>':'')+'</div>';
+    html+='<div class="ce-toolbar">'
+      +'<button onmousedown="event.preventDefault()" onclick="ceCmd(\'bold\')" title="Fett"><b>B</b></button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceCmd(\'italic\')" title="Kursiv"><i>I</i></button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceFormat(\'h3\')" title="Zwischenüberschrift">H3</button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceFormat(\'p\')" title="Normaler Absatz">¶</button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceCmd(\'insertUnorderedList\')" title="Aufzählung">&bull; Liste</button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceLink()" title="Link einfügen"><i class="ti ti-link"></i></button>'
+      +'<span class="sep"></span>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceBildModal()" title="Bild einfügen"><i class="ti ti-photo"></i> Bild</button>'
+      +'<button onmousedown="event.preventDefault()" onclick="ceVideoModal()" title="Video einfügen"><i class="ti ti-brand-youtube"></i> Video</button>'
+      +'</div>';
+    html+='<div class="ce-doc" id="ceDoc">';
+    html+=abs.map(function(ab,i){return '<div class="ce-sec" data-i="'+i+'" data-schluessel="'+esc(ab.schluessel||"")+'"><h2 contenteditable="true">'+esc(ab.ueberschrift||"")+'</h2><div class="ce-body" contenteditable="true">'+ceRenderPlaceholders(ab.html,window._ctBilder)+'</div></div>';}).join("");
+    html+='</div>';
+    html+='<div class="ce-actions"><span style="font-size:12px;color:var(--muted)"><i class="ti ti-eye"></i> Visuelle Bearbeitung – Text direkt ändern, Medien per Toolbar. „Speichern" schreibt in die Quelle; das Live-Frontend wird beim Portal-Build aktualisiert.</span><span style="margin-left:auto"></span>'
+      +'<button class="tb" onmousedown="event.preventDefault()" onclick="contentVerwerfen(\''+sid+'\')"><i class="ti ti-arrow-back-up"></i> Verwerfen</button>'
+      +'<button class="tb primary" onmousedown="event.preventDefault()" onclick="contentPublish(\''+sid+'\')"><i class="ti ti-cloud-upload"></i> Speichern &amp; veröffentlichen</button></div>';
+    html+='</div>';
     box.innerHTML=html;
+    document.querySelectorAll("#ceDoc .ce-body, #ceDoc h2[contenteditable]").forEach(function(el){el.addEventListener("keyup",ceSaveRange);el.addEventListener("mouseup",ceSaveRange);});
   }catch(e){box.innerHTML=emptyTab("ti-alert-triangle","Fehler","Content konnte nicht geladen werden: "+esc(e&&e.message?e.message:String(e)));}
 }
-async function contentSaveAbschnitt(i){const a=window._artikel;if(!a){toast("Kein Artikel geladen");return;}const ta=document.getElementById("abs_"+i);if(!ta)return;try{if(!a.sektionen)a.sektionen={};if(!a.sektionen.artikel)a.sektionen.artikel={};if(!Array.isArray(a.sektionen.artikel.abschnitte))a.sektionen.artikel.abschnitte=[];if(!a.sektionen.artikel.abschnitte[i])a.sektionen.artikel.abschnitte[i]={};a.sektionen.artikel.abschnitte[i].html=ta.value;await dbW('update','inhalts_artikel',a.id,{sektionen:a.sektionen,geaendert_am:new Date().toISOString()});toast('Abschnitt gespeichert ✓');ladeContent(a.software_id);}catch(e){alert('Speichern fehlgeschlagen: '+(e&&e.message?e.message:e));}}
+function ceSaveRange(){var sel=window.getSelection();if(sel&&sel.rangeCount){var r=sel.getRangeAt(0);var n=r.commonAncestorContainer;while(n&&n.nodeType===3)n=n.parentNode;if(n&&n.closest&&n.closest(".ce-body"))window._ceRange=r.cloneRange();}}
+function ceCmd(cmd){try{document.execCommand(cmd,false,null);}catch(e){}}
+function ceFormat(tag){try{document.execCommand("formatBlock",false,tag);}catch(e){}}
+function ceLink(){var u=prompt("Link-Adresse (https://…):");if(u){try{document.execCommand("createLink",false,u);}catch(e){}}}
+function ceMediaDel(btn){var f=btn.closest("figure");if(f)f.remove();}
+function ceInsertAtCursor(html){var sel=window.getSelection();if(window._ceRange){try{sel.removeAllRanges();sel.addRange(window._ceRange);}catch(e){}}var ok=false;if(sel.rangeCount){var n=sel.getRangeAt(0).commonAncestorContainer;while(n&&n.nodeType===3)n=n.parentNode;if(n&&n.closest&&n.closest(".ce-body"))ok=true;}if(!ok){var b=document.querySelector("#ceDoc .ce-body");if(b){b.focus();var r=document.createRange();r.selectNodeContents(b);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}}try{document.execCommand("insertHTML",false,html);}catch(e){}window._ceRange=null;}
+function ceBildModal(){ceSaveRange();var bilder=window._ctBilder||[];var grid=bilder.length?('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:4px;max-height:60vh;overflow:auto">'+bilder.map(function(b){return '<div onclick="ceBildInsert(\''+b.id+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:8px;overflow:hidden" title="'+esc(b.dateiname||"")+'"><div style="aspect-ratio:4/3;background:var(--panel2)">'+(b.original_url?'<img src="'+esc(b.original_url)+'" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover">':'')+'</div><div style="font-size:11px;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(b.dateiname||b.rolle||"Bild")+'</div></div>';}).join("")+'</div>'):'<div style="padding:18px;color:var(--muted)">Noch keine Bilder. Lade welche im Tab „Bilder" hoch.</div>';aov("Bild einfügen","An Cursor-Position",grid,'<span class="tb" onclick="closeAov()">Abbrechen</span>');}
+async function ceBildInsert(bildId){var b=(window._ctBilder||[]).find(function(x){return x.id===bildId;});if(!b){closeAov();return;}var key=b.content_key;if(!key){key=(b.dateiname||"bild").toLowerCase().replace(/\.[a-z0-9]+$/,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||("bild-"+String(bildId).slice(0,6));try{await dbW('update','software_bilder',b.id,{content_key:key,rolle:b.rolle||'inhalt'});b.content_key=key;}catch(e){alert('content_key konnte nicht gesetzt werden: '+(e&&e.message?e.message:e));return;}}closeAov();var fig='<figure class="ce-media" contenteditable="false" data-bild="'+esc(key)+'"><img src="'+esc(b.original_url||"")+'" referrerpolicy="no-referrer" alt="">'+(b.dateiname?'<div class="ce-cap">'+esc(b.dateiname)+'</div>':'')+'<button class="ce-del" contenteditable="false" onmousedown="event.preventDefault()" onclick="ceMediaDel(this)"><i class="ti ti-trash"></i> entfernen</button></figure><p><br></p>';ceInsertAtCursor(fig);}
+function ceVideoModal(){ceSaveRange();aov("Video einfügen","YouTube",'<div style="padding:12px"><input id="ceVidUrl" placeholder="YouTube-URL oder Video-ID" style="width:100%;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px" onkeydown="if(event.key===\'Enter\')ceVideoInsert()"></div>','<span class="tb" onclick="closeAov()">Abbrechen</span> <span class="tb primary" onclick="ceVideoInsert()"><i class="ti ti-plus"></i> Einfügen</span>');}
+function ceVideoInsert(){var inp=document.getElementById("ceVidUrl");var v=inp?inp.value.trim():"";var id=videoIdAusUrl(v)||(/^[A-Za-z0-9_-]{6,15}$/.test(v)?v:"");if(!id){toast("Keine gültige Video-ID");return;}closeAov();var fig='<figure class="ce-media" contenteditable="false" data-video="'+esc(id)+'"><div class="ce-vid"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" allowfullscreen loading="lazy"></iframe></div><button class="ce-del" contenteditable="false" onmousedown="event.preventDefault()" onclick="ceMediaDel(this)"><i class="ti ti-trash"></i> entfernen</button></figure><p><br></p>';ceInsertAtCursor(fig);}
+function contentVerwerfen(sid){if(confirm("Alle ungespeicherten Änderungen verwerfen?"))ladeContent(sid);}
+async function contentPublish(sid){var a=window._artikel;if(!a){toast("Kein Artikel geladen");return;}var secs=document.querySelectorAll("#ceDoc .ce-sec");var neu=[];secs.forEach(function(s,i){var h2=s.querySelector("h2");var body=s.querySelector(".ce-body");var alt=(window._ctAbs&&window._ctAbs[i])||{};neu.push({schluessel:s.dataset.schluessel||alt.schluessel||("abschnitt-"+(i+1)),ueberschrift:h2?h2.textContent.trim():(alt.ueberschrift||""),html:body?ceSerialize(body):""});});if(!a.sektionen)a.sektionen={};if(!a.sektionen.artikel)a.sektionen.artikel={};a.sektionen.artikel.abschnitte=neu;try{await dbW('update','inhalts_artikel',a.id,{sektionen:a.sektionen,geaendert_am:new Date().toISOString()});toast('Gespeichert ✓ – wird beim nächsten Portal-Build veröffentlicht');ladeContent(sid);}catch(e){alert('Speichern fehlgeschlagen: '+(e&&e.message?e.message:e));}}
 function tabVideos(r){return ytTool(r);}
 function tabBilder(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeBilder(sid);},0);return `<div class="tabhint"><i class="ti ti-photo"></i> Screenshots &amp; Produktbilder für <b>${esc(r.name||"")}</b>. Werden in Supabase Storage (Bucket „software-bilder“) abgelegt und im Astro-Portal eingebunden.</div>
   <div class="bw-row" style="margin-bottom:12px"><button class="tb primary" onclick="document.getElementById('biFile').click()"><i class="ti ti-upload"></i> Bilder hochladen</button><input type="file" id="biFile" accept="image/*" multiple style="display:none" onchange="bilderUpload('${sid}',this.files)"></div>
