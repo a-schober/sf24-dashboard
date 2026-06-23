@@ -144,7 +144,8 @@
   .chsel:hover{border-color:var(--accent)}.chsel.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
   .fld input[readonly],.fld select[disabled]{background:var(--panel2);color:var(--muted);cursor:not-allowed}
   .dlg-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid var(--line);background:var(--panel2)}.dlg-foot .right{margin-left:auto;display:flex;gap:8px}
-  .dtbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+  .dtbl{width:100%;border-collapse:collapse;font-size:12px}
+  .dtbl.fix{table-layout:fixed}
   .dtbl th{text-align:left;font-weight:500;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel2);position:sticky;top:0}
   .dtbl td{padding:6px 8px;border-bottom:1px solid var(--line2);word-break:break-word;overflow-wrap:anywhere;vertical-align:top}.dtbl tr:hover{background:var(--accent-soft)}
   body.dense td{padding-top:3px!important;padding-bottom:3px!important}body.dense .dtbl th{padding-top:4px;padding-bottom:4px}
@@ -596,7 +597,7 @@ const MENUS={
  Pipeline:[{l:"Fällige Crawls starten",i:"ti-spider",a:()=>runCrawl()},{l:"Auto-Watcher-Status",i:"ti-robot"},{l:"Aktualisierungs-Ampel",i:"ti-traffic-lights"},{l:"Validierungslauf (alle)",i:"ti-checkup-list",a:()=>runValidate()}],
  Portal:[{l:"Alle Märkte bauen",i:"ti-hammer",a:()=>runBuild()},{l:"Build-Protokoll",i:"ti-history",a:()=>route('portalbuild')},{l:"Staging öffnen",i:"ti-external-link"},{l:"Live öffnen",i:"ti-external-link",a:()=>window.open('https://softwarefinder24.de','_blank','noopener')}],
  Ansicht:[{l:"Hell / Dunkel",i:"ti-contrast-2",a:()=>document.body.classList.toggle('dark')},{l:"Dichte: kompakt / komfortabel",i:"ti-baseline-density-medium",a:()=>toggleDichte()},{l:"Spalten zurücksetzen",i:"ti-columns",a:()=>{VIEWS[CUR].cols.forEach(c=>c.vis=true);render();toast('Spalten zurückgesetzt');}}],
- Extras:[{l:"n8n öffnen",i:"ti-external-link",a:()=>window.open('https://n8n.schober.media','_blank','noopener')},{l:"Firecrawl öffnen",i:"ti-external-link",a:()=>window.open('https://www.firecrawl.dev','_blank','noopener')},{l:"Supabase öffnen",i:"ti-external-link",a:()=>window.open('https://supabase.com/dashboard/project/xoyjsjenitjppxpcheza','_blank','noopener')},{l:"claude.ai öffnen",i:"ti-external-link",a:()=>window.open('https://claude.ai','_blank','noopener')},{sep:1},{l:"Logs",i:"ti-file-text"}],
+ Extras:[{l:"n8n öffnen",i:"ti-external-link",a:()=>window.open('https://n8n.schober.media','_blank','noopener')},{l:"Firecrawl öffnen",i:"ti-external-link",a:()=>window.open('https://www.firecrawl.dev/app/usage','_blank','noopener')},{l:"Supabase öffnen",i:"ti-external-link",a:()=>window.open('https://supabase.com/dashboard/project/xoyjsjenitjppxpcheza','_blank','noopener')},{l:"claude.ai öffnen",i:"ti-external-link",a:()=>window.open('https://claude.ai','_blank','noopener')},{l:"Claude API-Keys",i:"ti-key",a:()=>window.open('https://platform.claude.com/settings/billing','_blank','noopener')},{sep:1},{l:"Logs",i:"ti-file-text"}],
  Hilfe:[{l:"Dokumentation",i:"ti-book"},{l:"Tastenkürzel",i:"ti-keyboard"},{l:"Über",i:"ti-info-circle",a:()=>toast('SF24 Cockpit · live unter sf24.schober.media · Daten zentral in Supabase')}]
 };
 /* Export / Sicherung / Dichte */
@@ -763,7 +764,7 @@ function tabFaelle(r){const d=r._d||{};if(d.lade)return emptyTab("ti-loader-2","
   const rows=d.faelle||[];
   const head='<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="tb primary" onclick="childEdit(\'anwendungsfaelle\')"><i class="ti ti-plus"></i> Anwendungsfall hinzufügen</button></div>';
   if(!rows.length)return head+emptyTab("ti-user-search","Keine Anwendungsfälle","Füge oben manuell einen hinzu oder crawle die Website.");
-  return head+`<table class="dtbl"><thead><tr><th>Anwendungsfall / Zielgruppe</th><th>Beschreibung</th><th style="width:74px"></th></tr></thead><tbody>${rows.map(function(x){return `<tr><td style="font-weight:500">${esc(x.titel||x.zielgruppe||"—")}${(x.titel&&x.zielgruppe)?'<div style="font-size:11px;color:var(--muted)">'+esc(x.zielgruppe)+'</div>':''}</td><td style="color:var(--muted)">${esc(x.beschreibung||"")}</td><td style="text-align:right;white-space:nowrap">${childActs('anwendungsfaelle',x.anwendungsfall_id)}</td></tr>`;}).join("")}</tbody></table>`;}
+  return head+`<table class="dtbl fix"><thead><tr><th>Anwendungsfall / Zielgruppe</th><th>Beschreibung</th><th style="width:74px"></th></tr></thead><tbody>${rows.map(function(x){return `<tr><td style="font-weight:500">${esc(x.titel||x.zielgruppe||"—")}${(x.titel&&x.zielgruppe)?'<div style="font-size:11px;color:var(--muted)">'+esc(x.zielgruppe)+'</div>':''}</td><td style="color:var(--muted)">${esc(x.beschreibung||"")}</td><td style="text-align:right;white-space:nowrap">${childActs('anwendungsfaelle',x.anwendungsfall_id)}</td></tr>`;}).join("")}</tbody></table>`;}
 function tabBew(r){return bwTool(r);}
 function tabContent(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeContent(sid);},0);return '<div id="contentBox"><div style="padding:32px;color:var(--muted)">Lade Content-Stand …</div></div>';}
 async function ladeContent(sid){const box=$("#contentBox");if(!box)return;if(!sid){box.innerHTML="";return;}
