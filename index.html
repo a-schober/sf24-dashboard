@@ -562,7 +562,17 @@ async function ytQueueShow(){const sid=dlgRow&&(dlgRow.id||(dlgRow._d&&dlgRow._d
   try{const res=await sb.from('video_warteschlange').select('id,video_id,video_titel,rang,relevanz,status').eq('software_id',sid).order('rang',{ascending:true,nullsFirst:false});const rows=res.data||[];const o=document.getElementById("ytQOut");
     if(!rows.length){if(o)o.innerHTML='<div style="padding:8px;color:var(--muted)">Keine Videos in der Warteschlange.</div>';return;}
     var stCl=function(s){return s==="fertig"?"pg":s==="fehler"?"pr":"pa";};
-    if(o)o.outerHTML='<div style="padding:4px"><table class="dtbl fix"><thead><tr><th style="width:44px">Rang</th><th>Video</th><th style="width:64px;text-align:right">Relev.</th><th style="width:84px">Status</th><th style="width:150px"></th></tr></thead><tbody>'+rows.map(function(x){return '<tr><td><b>'+(x.rang!=null?x.rang:"–")+'</b></td><td>'+esc(x.video_titel||x.video_id)+'</td><td style="text-align:right">'+(x.relevanz!=null?x.relevanz+"/10":"–")+'</td><td><span class="'+stCl(x.status)+'">'+esc(x.status||"offen")+'</span></td><td style="white-space:nowrap"><button class="mini2" onclick="ytCopy(\''+x.video_id+'\')">/watch</button> <button class="mini2" onclick="ytQueueDel(\''+x.id+'\')">Entfernen</button></td></tr>';}).join("")+'</tbody></table></div>';
+    if(o)o.outerHTML='<div style="padding:4px 6px;max-height:62vh;overflow:auto">'+rows.map(function(x){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line2)">'
+      +'<div style="font-weight:700;color:var(--muted);min-width:18px;text-align:center">'+(x.rang!=null?x.rang:"–")+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;line-height:1.35">'+esc(x.video_titel||x.video_id)+'</div>'
+        +'<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+          +'<span class="'+stCl(x.status)+'" style="font-size:11px">'+esc(x.status||"offen")+'</span>'
+          +(x.relevanz!=null?'<span style="font-size:11px;color:var(--muted)">Relevanz '+x.relevanz+'/10</span>':"")
+          +'<button class="mini2" onclick="ytCopy(\''+x.video_id+'\')">/watch</button>'
+          +'<button class="mini2" onclick="ytQueueDel(\''+x.id+'\')">Entfernen</button>'
+        +'</div>'
+      +'</div></div>';}).join("")+'</div>';
   }catch(e){const o=document.getElementById("ytQOut");if(o)o.innerHTML="Konnte Warteschlange nicht laden: "+esc(String(e&&e.message?e.message:e));}
 }
 async function ytQueueDel(id){if(!confirm("Eintrag aus der Warteschlange entfernen?"))return;try{await dbW('delete','video_warteschlange',id);toast('Aus Warteschlange entfernt');await ytLadeDone();ytRenderAll();ytQueueShow();}catch(e){alert('Entfernen fehlgeschlagen: '+(e&&e.message?e.message:e));}}
@@ -906,21 +916,23 @@ function tabFaelle(r){const d=r._d||{};if(d.lade)return emptyTab("ti-loader-2","
 function tabBew(r){return bwTool(r);}
 function tabContent(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeContent(sid);},0);return '<div id="contentBox"><div style="padding:32px;color:var(--muted)">Lade Content-Stand …</div></div>';}
 async function ladeContent(sid){const box=$("#contentBox");if(!box)return;if(!sid){box.innerHTML="";return;}
-  try{const res=await sb.from('inhalts_artikel').select('inhalts_status,nw_punktzahl_v1,nw_punktzahl_v2,nw_punktzahl_v3,sektionen,erstveroeffentlicht_am,meta_title,slug,ziel_url,geaendert_am').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1);
-    const a=res.data&&res.data[0];
+  try{const res=await Promise.all([sb.from('inhalts_artikel').select('*').eq('software_id',sid).order('geaendert_am',{ascending:false}).limit(1),sb.from('software_bilder').select('content_key,rolle,dateiname').eq('software_id',sid).eq('rolle','inhalt')]);
+    const a=res[0].data&&res[0].data[0];window._artikel=a;const inhaltBilder=res[1].data||[];
     if(!a){box.innerHTML=emptyTab("ti-article","Noch kein Content","Für diese Software wurde noch kein Portal-Artikel erzeugt (Phase „Content“).");return;}
-    const art=(a.sektionen&&a.sektionen.artikel)||{};
-    const BAUS=[["titel","Titel"],["steckbrief","Steckbrief"],["toc","Inhaltsverzeichnis"],["abschnitte","Fließtext-Abschnitte"],["vorteile","Vorteile"],["nachteile","Nachteile"],["preise_tabelle","Preis-Tabelle"],["vergleich","Vergleich"],["bewertung","Bewertung"],["faq","FAQ"]];
-    const has=function(v){if(v==null)return false;if(Array.isArray(v))return v.length>0;if(typeof v==='object')return Object.keys(v).length>0;return String(v).trim()!=='';};
-    const vorh=BAUS.filter(function(b){return has(art[b[0]]);}).length;
-    const nw=a.nw_punktzahl_v3!=null?a.nw_punktzahl_v3:(a.nw_punktzahl_v2!=null?a.nw_punktzahl_v2:a.nw_punktzahl_v1);
-    const live=a.inhalts_status==='live'||!!a.erstveroeffentlicht_am;
-    box.innerHTML='<div class="kpi"><div class="b"><div class="n">'+vorh+' / '+BAUS.length+'</div><div class="l">Abschnitte</div></div><div class="b"><div class="n">'+esc(a.inhalts_status||"—")+'</div><div class="l">Portal-Artikel</div></div><div class="b"><div class="n">'+(nw!=null?nw:"—")+'</div><div class="l">NeuronWriter</div></div><div class="b"><div class="n">'+(live?"ja":"nein")+'</div><div class="l">veröffentlicht</div></div></div>'+
-      (a.meta_title?'<div style="font-size:12.5px;font-weight:600;margin:0 0 4px">'+esc(a.meta_title)+'</div>':"")+
-      (a.ziel_url?'<div style="font-size:12px;color:var(--muted);margin:0 0 12px">URL: <a href="'+esc(a.ziel_url)+'" target="_blank" rel="noopener" style="color:var(--accent-ink)">'+esc(a.ziel_url)+'</a></div>':"")+
-      '<table class="dtbl"><thead><tr><th>Abschnitt</th><th>Status</th></tr></thead><tbody>'+BAUS.map(function(b){const ok=has(art[b[0]]);return '<tr><td>'+b[1]+'</td><td><span class="'+(ok?"pg":"pr")+'">'+(ok?"vorhanden":"fehlt")+'</span></td></tr>';}).join("")+'</tbody></table>';
+    const art=(a.sektionen&&a.sektionen.artikel)||{};const abs=Array.isArray(art.abschnitte)?art.abschnitte:[];
+    const nw=a.nw_punktzahl_v3!=null?a.nw_punktzahl_v3:(a.nw_punktzahl_v2!=null?a.nw_punktzahl_v2:a.nw_punktzahl_v1);const live=a.inhalts_status==='live'||!!a.erstveroeffentlicht_am;
+    let html='<div class="kpi"><div class="b"><div class="n">'+abs.length+'</div><div class="l">Abschnitte</div></div><div class="b"><div class="n">'+esc(a.inhalts_status||"—")+'</div><div class="l">Status</div></div><div class="b"><div class="n">'+(nw!=null?nw:"—")+'</div><div class="l">NeuronWriter</div></div><div class="b"><div class="n">'+(live?"ja":"nein")+'</div><div class="l">veröffentlicht</div></div></div>';
+    if(a.meta_title)html+='<div style="font-size:12.5px;font-weight:600;margin:0 0 4px">'+esc(a.meta_title)+'</div>';
+    if(a.ziel_url)html+='<div style="font-size:12px;color:var(--muted);margin:0 0 12px">URL: <a href="'+esc(a.ziel_url)+'" target="_blank" rel="noopener" style="color:var(--accent-ink)">'+esc(a.ziel_url)+'</a></div>';
+    html+='<div class="fgrp">Bild-Platzhalter</div>';
+    if(!inhaltBilder.length){html+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Noch keine Inhalt-Bilder. Im Tab <b>Bilder</b> ein Bild auf Rolle <b>Inhalt</b> setzen und einen <b>content_key</b> vergeben – es erscheint dann hier als einfügbarer Platzhalter.</div>';}
+    else{html+='<div style="font-size:12px;color:var(--muted);margin:0 0 8px">Platzhalter anklicken zum Kopieren, dann unten an der gewünschten Stelle im Abschnitt einfügen:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">'+inhaltBilder.map(function(b){if(!b.content_key){return '<span style="font-size:11px;color:var(--bad);border:1px solid currentColor;border-radius:5px;padding:2px 6px">'+esc(b.dateiname||"Bild")+' (kein content_key)</span>';}return '<span class="wb-cand" style="cursor:pointer" onclick="copyText(\'[[bild:'+b.content_key+']]\')" title="'+esc(b.dateiname||"")+'"><i class="ti ti-copy"></i> [[bild:'+esc(b.content_key)+']]</span>';}).join("")+'</div>';}
+    if(abs.length){html+='<div class="fgrp">Artikel-Abschnitte – Platzhalter [[bild:key]] direkt im Text platzieren</div>'+abs.map(function(ab,i){const cnt=(String(ab.html||"").match(/\[\[bild:[^\]]+\]\]/g)||[]);return '<div style="margin-bottom:16px"><div style="font-weight:600;font-size:12.5px;margin-bottom:4px">'+esc(ab.ueberschrift||("Abschnitt "+(i+1)))+(cnt.length?' <span style="color:var(--muted);font-weight:400">· '+cnt.length+' Bild platziert</span>':'')+'</div><textarea id="abs_'+i+'" style="width:100%;box-sizing:border-box;min-height:130px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;line-height:1.55;resize:vertical">'+esc(ab.html||"")+'</textarea><div style="text-align:right;margin-top:5px"><button class="tb primary" onclick="contentSaveAbschnitt('+i+')"><i class="ti ti-device-floppy"></i> Abschnitt speichern</button></div></div>';}).join("");}
+    else{html+='<div style="font-size:12px;color:var(--muted)">Dieser Artikel hat keine bearbeitbaren Fließtext-Abschnitte.</div>';}
+    box.innerHTML=html;
   }catch(e){box.innerHTML=emptyTab("ti-alert-triangle","Fehler","Content konnte nicht geladen werden: "+esc(e&&e.message?e.message:String(e)));}
 }
+async function contentSaveAbschnitt(i){const a=window._artikel;if(!a){toast("Kein Artikel geladen");return;}const ta=document.getElementById("abs_"+i);if(!ta)return;try{if(!a.sektionen)a.sektionen={};if(!a.sektionen.artikel)a.sektionen.artikel={};if(!Array.isArray(a.sektionen.artikel.abschnitte))a.sektionen.artikel.abschnitte=[];if(!a.sektionen.artikel.abschnitte[i])a.sektionen.artikel.abschnitte[i]={};a.sektionen.artikel.abschnitte[i].html=ta.value;await dbW('update','inhalts_artikel',a.id,{sektionen:a.sektionen,geaendert_am:new Date().toISOString()});toast('Abschnitt gespeichert ✓');ladeContent(a.software_id);}catch(e){alert('Speichern fehlgeschlagen: '+(e&&e.message?e.message:e));}}
 function tabVideos(r){return ytTool(r);}
 function tabBilder(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeBilder(sid);},0);return `<div class="tabhint"><i class="ti ti-photo"></i> Screenshots &amp; Produktbilder für <b>${esc(r.name||"")}</b>. Werden in Supabase Storage (Bucket „software-bilder“) abgelegt und im Astro-Portal eingebunden.</div>
   <div class="bw-row" style="margin-bottom:12px"><button class="tb primary" onclick="document.getElementById('biFile').click()"><i class="ti ti-upload"></i> Bilder hochladen</button><input type="file" id="biFile" accept="image/*" multiple style="display:none" onchange="bilderUpload('${sid}',this.files)"></div>
