@@ -680,7 +680,7 @@ function automationenView(){const cv=$("#customview");if(!cv)return;
     '</div>';
 }
 function autoCopy(i){const el=document.getElementById('autocmd'+i);if(!el)return;const t=el.textContent||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Befehl kopiert ✓');},function(){toast('Kopieren nicht möglich');});}else{toast('Kopieren nicht möglich');}}
-function route(key){CUR=key;document.querySelectorAll("#side .nav").forEach(n=>n.classList.toggle("active",n.dataset.v===key));
+function route(key){CUR=key;try{if(location.hash.slice(1)!==key)history.replaceState(null,'','#'+key);}catch(e){}document.querySelectorAll("#side .nav").forEach(n=>n.classList.toggle("active",n.dataset.v===key));
   if(key==="wbinbox"){document.body.classList.add("custom");document.body.classList.remove("gen");$("#crumb").innerHTML='<i class="ti ti-inbox"></i> <b>Feature-Inbox</b> <span class="sp">›</span> offene Zuordnungen aus Crawls & Videos';wbView();return;}
   if(key==="logos"){document.body.classList.add("custom");document.body.classList.remove("gen");$("#crumb").innerHTML='<i class="ti ti-photo"></i> <b>Logos</b> <span class="sp">›</span> Software- &amp; Integrations-Logos (self-hosted)';logosView();return;}
   if(key==="automationen"){document.body.classList.add("custom");document.body.classList.remove("gen");$("#crumb").innerHTML='<i class="ti ti-robot"></i> <b>Lokale Automatisierungen</b> <span class="sp">›</span> manuell über Claude Max ausführbar';automationenView();return;}
@@ -1556,11 +1556,12 @@ function vglResult(names){const c=$("#vglRes"),f=$("#aFoot");if(!c)return;
   if(f)f.innerHTML='<span class="tb" onclick="closeAov()">Schließen</span> <span class="tb" onclick="toast(\'Als Entwurf gespeichert (Demo)\')"><i class="ti ti-device-floppy"></i> Als Entwurf</span> <span class="tb ok" onclick="vglPublish()"><i class="ti ti-rosette-discount-check"></i> Veröffentlichen</span>';
 }
 function vglPublish(){const names=vglLastNames;if(!names||names.length<2)return;VIEWS.vergleiche.rows.unshift({name:names.join(" vs. "),kat:vglCat,tools:names.length,markt:"DE",angelegt:"2026-06-22",pct:100,status:"live",geprueft:"2026-06-22",nw:80,_hue:HUE[VIEWS.vergleiche.rows.length%HUE.length]});vglSel=new Set();toast("Vergleichsartikel veröffentlicht & in Übersicht aufgenommen");closeAov();route("vergleiche");}
-async function startApp(){ await ladeSW(); gsInit(); route("software"); wbLoad().then(updateWbBadge); }
+async function startApp(){ await ladeSW(); gsInit(); const _h=(location.hash||'').slice(1); route((_h&&document.querySelector('#side .nav[data-v="'+_h+'"]'))?_h:"software"); wbLoad().then(updateWbBadge); }
 _$("lgBtn").onclick=lgLogin;
 _$("lgReset").onclick=lgReset;
 ["lgPw","lgCode","lgMail"].forEach(id=>_$(id).addEventListener("keydown",e=>{if(e.key==="Enter")lgLogin();}));
 document.querySelectorAll("#side .nav").forEach(n=>n.onclick=()=>{route(n.dataset.v);toggleSidebar(false);});
+window.addEventListener("hashchange",function(){const h=(location.hash||'').slice(1);if(h&&h!==CUR&&document.querySelector('#side .nav[data-v="'+h+'"]'))route(h);});
 bootAuth();
 </script>
 </body>
