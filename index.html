@@ -72,6 +72,11 @@
   .pws-hint{font-size:12.5px;color:var(--muted);padding:8px 11px;background:var(--panel2);border-radius:8px}
   .pws-hint.ok{color:#15803d;background:#dcfce7}
   .pws-i{display:inline-grid;place-items:center;width:15px;height:15px;border:1px solid currentColor;border-radius:50%;font-size:10px;font-style:italic;font-family:Georgia,serif;opacity:.55;margin-left:6px;cursor:help;flex:none}
+  .pws-subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .pws-subtab{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:7px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+  .pws-subtab:hover{color:var(--ink)}
+  .pws-subtab.on{background:#eef2ff;border-color:#c7d2fe;color:#4338ca;font-weight:600}
+  .pws-form{margin-top:4px}
   @media(max-width:760px){.pws-body{grid-template-columns:1fr}.pws-rail{flex-direction:row;overflow:auto}}.tb.ok{border-color:var(--ok);color:var(--ok)}.tb.ok i{color:var(--ok)}
   .tb[disabled]{opacity:.45;pointer-events:none}.sep{width:1px;height:22px;background:var(--line);margin:0 6px}
   body.gen .ctx{display:none}
@@ -913,6 +918,7 @@ function bwRenderThumbs(){const t=$("#bwThumbs");if(!t)return;t.innerHTML=bwBild
 function rowMatchesQ(v,r,q){q=String(q||'').toLowerCase();return v.cols.some(function(c){if(c.vis===false)return false;return String(disp(v,r,c)||'').toLowerCase().indexOf(q)>=0;});}
 function tbSearchInput(q){const v=VIEWS[CUR];if(!v)return;v._q=q;render();}
 function render(){
+  if(CUR==='produkt')return;
   const v=VIEWS[CUR];const cols=v.cols.filter(c=>c.vis);
   const _se=document.getElementById('tbSearch');if(_se&&_se.value!==(v._q||''))_se.value=v._q||'';
   $("#crumb").innerHTML=`<i class="ti ${v.ic}"></i> <b>${v.t}</b> <span class="sp">›</span> Übersicht`+(CUR==="software"?' <span class="sp">·</span> <span style="color:var(--faint)">Spaltenkopf = sortieren &amp; filtern · Zeile = Details</span>':"")+`<span class="clr ${Object.keys(v._filt).length?"on":""}" onclick="clearAll()"><i class="ti ti-filter-off"></i> Alle Filter löschen</span>`;
@@ -1023,9 +1029,9 @@ function fld(label,val,o){o=o||{};const lab=label+(o.req?' <span style="color:va
   else if(o.sel){inp=`<select ${o.ro?"disabled":""}><option>${esc(val||"— bitte wählen —")}</option></select>`;}
   else{inp=`<input value="${esc(val==null?"":val)}" ${o.ro?"readonly":""}${dk} ${o.miss?'class="miss" placeholder="'+(o.ph||"fehlt")+'"':""}>`;}
   return `<div class="fld"><label>${lab}</label><div class="v">${inp}${o.miss?'<div class="miss-t">'+(o.missT||"Pflichtfeld leer")+'</div>':""}</div></div>`;}
-let dlgRow=null,dlgTab="stammdaten";
+let dlgRow=null,dlgTab="stammdaten",DLGFORM="dForm";
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
-async function openDlg(i){const neu=i<0;dlgRow=neu?{name:"",hersteller:"",kat:"Buchhaltung",markt:"DE",angelegt:"",funk:0,pct:0,status:"neu",geprueft:"",_hue:"#64748b"}:VIEWS.software.rows[i];const r=dlgRow,s=ST[r.status];
+async function openDlg(i){DLGFORM="dForm";const neu=i<0;dlgRow=neu?{name:"",hersteller:"",kat:"Buchhaltung",markt:"DE",angelegt:"",funk:0,pct:0,status:"neu",geprueft:"",_hue:"#64748b"}:VIEWS.software.rows[i];const r=dlgRow,s=ST[r.status];
   if(r._logo){$("#dLogo").innerHTML='<img src="'+r._logo+'" alt="" style="width:100%;height:100%;object-fit:contain">';$("#dLogo").style.background="#fff";}else{$("#dLogo").innerHTML="";$("#dLogo").textContent=(r.name||"NN").replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase()||"NN";$("#dLogo").style.background=r._hue||"#64748b";}
   $("#dName").textContent=neu?"Neue Software anlegen":r.name;$("#dSub").textContent=neu?"Stammdaten erfassen":(r.hersteller+" · "+r.kat);$("#dBadge").textContent=s.l;$("#dnFunk").textContent=r.funk||0;setBildCount(r.id||(r._d&&r._d.full&&r._d.full.id));
   r._d=neu?{full:{},funk:[],preise:[],integ:[],faelle:[],lade:false}:{lade:true,funk:[],preise:[],integ:[],faelle:[],full:{}};
@@ -1044,13 +1050,13 @@ async function openDlg(i){const neu=i<0;dlgRow=neu?{name:"",hersteller:"",kat:"B
   }
 }
 function setTab(t){dlgTab=t;document.querySelectorAll("#ov .dn").forEach(d=>d.classList.toggle("active",d.dataset.tab===t));renderTab();}
-function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent};$("#dForm").innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}
+function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent};var _ff=document.getElementById(DLGFORM);if(_ff)_ff.innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}
 function emptyTab(ic,t,d){return `<div class="empty-tab"><i class="ti ${ic}"></i><b>${t}</b><div class="d">${d||""}</div></div>`;}
 async function saveStamm(){
   const sid=(dlgRow&&dlgRow.id)||(dlgRow&&dlgRow._d&&dlgRow._d.full&&dlgRow._d.full.id);
   if(!sid){toast("Keine Software-ID – Dialog bitte neu öffnen.");return;}
   const patch={};
-  document.querySelectorAll('#dForm [data-k]').forEach(function(el){const k=el.dataset.k,ty=el.dataset.ty;
+  document.querySelectorAll('#'+DLGFORM+' [data-k]').forEach(function(el){const k=el.dataset.k,ty=el.dataset.ty;
     if(el.classList.contains('chipsel')){patch[k]=[...el.querySelectorAll('.chsel.on')].map(c=>c.textContent.trim().toLowerCase());return;}
     let v=el.value;
     if(ty==='num'){v=v===''?null:Number(String(v).replace(',','.'));}
@@ -1062,7 +1068,8 @@ async function saveStamm(){
   try{
     await dbW('update','software',sid,patch);
     if(dlgRow._d)dlgRow._d.full=Object.assign({},dlgRow._d.full,patch);
-    await ladeSW();render();closeDlg();
+    await ladeSW();
+    if(CUR==='produkt'&&PWS){closeDlg();await pwsOpen(PWS.id);}else{render();closeDlg();}
     toast('Stammdaten gespeichert ✓');
   }catch(e){alert("Speichern fehlgeschlagen:\n"+(e&&e.message?e.message:e));}
 }
@@ -1398,16 +1405,19 @@ async function pwsOpen(id){
   try{
     const res=await Promise.all([
       sb.from('software').select('*').eq('id',id).single(),
-      sb.from('funktionen').select('funktions_id,funktions_name,canonical_name').eq('software_id',id),
+      sb.from('funktionen').select('funktions_id,funktions_name,canonical_name,kategorie,verfuegbar_ab_tarif,konfidenz_score').eq('software_id',id).order('konfidenz_score',{ascending:false,nullsFirst:false}),
       sb.from('preise').select('*').eq('software_id',id),
-      sb.from('integrationen').select('integrations_id').eq('software_id',id),
-      sb.from('anwendungsfaelle').select('anwendungsfall_id').eq('software_id',id),
+      sb.from('integrationen').select('integrations_id,integrations_name,integrations_typ,kategorie,beschreibung').eq('software_id',id),
+      sb.from('anwendungsfaelle').select('anwendungsfall_id,titel,zielgruppe,beschreibung,mehrwert').eq('software_id',id),
       sb.from('quellen').select('id').eq('software_id',id),
       sb.from('bewertungs_synthesen').select('id').eq('software_id',id).limit(1),
       sb.from('freigaben').select('id,status').eq('software_id',id),
       sb.from('inhalts_artikel').select('id,status').eq('software_id',id).limit(1)
     ]);
     PWS={id:id,full:res[0].data||{},funk:res[1].data||[],preise:res[2].data||[],integ:res[3].data||[],faelle:res[4].data||[],quellen:res[5].data||[],synthese:(res[6].data||[]).length>0,freigaben:res[7].data||[],artikel:(res[8].data||[])[0]||null};
+    const lr=VIEWS.software.rows.find(function(r){return String(r.id)===String(id);});
+    dlgRow=lr||{id:id,name:PWS.full.name,hersteller:PWS.full.hersteller,kat:PWS.full.kategorie,markt:'DE',status:PWS.full.status||'neu',_hue:'#64748b'};
+    dlgRow._d={full:PWS.full,funk:PWS.funk,preise:PWS.preise,integ:PWS.integ,faelle:PWS.faelle,lade:false};
   }catch(e){PWS={id:id,full:{},funk:[],preise:[],integ:[],faelle:[],quellen:[],synthese:false,freigaben:[],artikel:null};}
   if(CUR!=='produkt')return;
   pwsRender();
@@ -1447,44 +1457,51 @@ function pwsStages(P){
 function pwsRow(ok,label,info,btn){return '<div class="pws-crit"><span class="pws-c-ic '+(ok?'ok':'no')+'">'+(ok?'✔':'●')+'</span><span class="pws-c-l">'+label+(info?infoH(info):'')+'</span>'+(btn||'')+'</div>';}
 function pwsBtn(label,onclick,icon,primary){return '<button class="pws-act'+(primary?' primary':'')+'" onclick="'+onclick+'"><i class="ti '+(icon||'ti-arrow-right')+'"></i> '+label+'</button>';}
 function pwsEditor(tab){if(!PWS)return;const i=VIEWS.software.rows.findIndex(function(r){return String(r.id)===String(PWS.id);});if(i<0){toast('Produkt nicht in der Liste – bitte „Alle Produkte" aktualisieren');return;}openDlg(i);if(tab)setTab(tab);}
+function pwsStageTabs(n){return n===1?['stammdaten']:n===3?['funktionen','preise','integrationen','faelle']:n===4?['bewertungen']:n===7?['content']:[];}
+const PWS_TABLBL={stammdaten:'Stammdaten',funktionen:'Funktionen',preise:'Tarife',integrationen:'Integrationen',faelle:'Anwendungsfälle',bewertungen:'Bewertungen',content:'Content'};
+function pwsTab(tab){dlgTab=tab;DLGFORM='pwsForm';renderTab();document.querySelectorAll('.pws-subtab').forEach(function(b){b.classList.toggle('on',b.dataset.t===tab);});}
 function pwsPanel(P,st){
-  const f=P.full||{};const n=st.n;
+  const f=P.full||{};const n=st.n;const tabs=pwsStageTabs(n);
   let h='<div class="pws-p-head"><span class="pws-p-n">Stufe '+n+'</span><h2>'+esc(st.t)+infoH(st.info)+'</h2></div>';
   let body='';
   if(n===1){
-    body=pwsRow(!!f.name,'Name','',pwsBtn('Stammdaten bearbeiten','pwsEditor(\'stammdaten\')','ti-edit'))
-      +pwsRow(!!f.hersteller,'Hersteller')+pwsRow(!!f.hersteller_url,'Hersteller-URL')+pwsRow(!!f.kategorie,'Kategorie')+pwsRow(!!(f.relevante_maerkte&&f.relevante_maerkte.length),'Relevante Märkte');
+    body='';
   }else if(n===2){
     body=pwsRow((P.funk||[]).length>0,(P.funk||[]).length+' Roh-Funktionen erfasst')
       +pwsRow((P.preise||[]).length>0,(P.preise||[]).length+' Tarife erfasst')
       +'<div class="pws-acts">'+pwsBtn('Crawl-Monitor öffnen','route(\'crawl\')','ti-spider',1)+'</div>';
   }else if(n===3){
-    body=pwsRow(st.offeneFunk===0&&(P.funk||[]).length>0,'Funktionen zugeordnet – '+st.offeneFunk+' offen','Was tun: jeden Roh-Begriff einem Canonical zuordnen. Ziel: 0 offene Funktionen.',pwsBtn(st.offeneFunk>0?'Jetzt zuordnen':'Ansehen','pwsEditor(\'funktionen\')','ti-list-check'))
-      +pwsRow((P.preise||[]).length>0,'Tarife erfasst','',pwsBtn('Tarife','pwsEditor(\'preise\')','ti-coin'))
-      +pwsRow(false,'Limits je Tarif (empfohlen)','Optional: Kontingente je Tarif eintragen. Blockiert „Weiter" nicht – nicht jedes Tool veröffentlicht Limits.',pwsBtn('Ergänzen','pwsEditor(\'preise\')','ti-adjustments'))
-      +pwsRow((P.integ||[]).length>0||(P.faelle||[]).length>0,(P.integ||[]).length+' Integrationen · '+(P.faelle||[]).length+' Anwendungsfälle','',pwsBtn('Öffnen','pwsEditor(\'integrationen\')','ti-plug'));
+    body=pwsRow(st.offeneFunk===0&&(P.funk||[]).length>0,'Funktionen zugeordnet – '+st.offeneFunk+' offen','Was tun: jeden Roh-Begriff einem Canonical zuordnen. Ziel: 0 offene Funktionen.')
+      +pwsRow((P.preise||[]).length>0,'Tarife erfasst')
+      +pwsRow(false,'Limits je Tarif (empfohlen, optional)','Optional: Kontingente je Tarif. Blockiert „Weiter" nicht – nicht jedes Tool veröffentlicht Limits.');
   }else if(n===4){
-    body=pwsRow((P.quellen||[]).length>0,(P.quellen||[]).length+' Quellen','',pwsBtn('Stammdaten','pwsEditor(\'stammdaten\')','ti-link'))
-      +pwsRow(P.synthese,'Bewertungs-Synthese vorhanden','',pwsBtn('Bewertungen','pwsEditor(\'bewertungen\')','ti-star'))
-      +pwsRow(!!f.logo_pfad,'Logo gesetzt','',pwsBtn('Logos','route(\'logos\')','ti-photo'))
-      +pwsRow(!!f.appsumo_geprueft_am,'AppSumo geprüft','',pwsBtn('AppSumo','pwsEditor(\'stammdaten\')','ti-discount-2'));
+    body=pwsRow((P.quellen||[]).length>0,(P.quellen||[]).length+' Quellen')
+      +pwsRow(P.synthese,'Bewertungs-Synthese vorhanden')
+      +pwsRow(!!f.logo_pfad,'Logo gesetzt','',pwsBtn('Logos verwalten','route(\'logos\')','ti-photo'))
+      +pwsRow(!!f.appsumo_geprueft_am,'AppSumo geprüft');
   }else if(n===5){
     body=pwsRow(st.offeneFrei===0,'Offene Freigaben: '+st.offeneFrei,'',pwsBtn('Freigaben öffnen','route(\'freigaben\')','ti-checkbox'))
-      +'<div class="pws-acts">'+pwsBtn('Im Detail validieren','pwsEditor(\'stammdaten\')','ti-checkup-list')+'</div>';
+      +pwsRow(true,'Crawl-Monitor / Validierung','',pwsBtn('Crawl-Monitor','route(\'crawl\')','ti-spider'));
   }else if(n===6){
     const ss=pwsStages(P);const need=ss.filter(function(s){return s.n<=5&&!s.done;});
     body=ss.filter(function(s){return s.n<=5;}).map(function(s){return pwsRow(s.done,'Stufe '+s.n+': '+esc(s.t));}).join('')
       +(need.length?'<div class="pws-hint">Noch offen: '+need.map(function(s){return esc(s.t);}).join(', ')+'</div>':'<div class="pws-hint ok">Alles vollständig – bereit zur Veröffentlichung!</div>');
   }else if(n===7){
-    body=pwsRow(!!P.artikel,'Content erzeugt','',pwsBtn('Content','pwsEditor(\'content\')','ti-file-text'))
+    body=pwsRow(!!P.artikel,'Content erzeugt')
       +'<div class="pws-acts">'+pwsBtn('Portal bauen','runBuild(\'de\')','ti-hammer',1)+'</div>';
   }else{
     body=pwsRow(true,'Zuletzt geprüft: '+(f.letzte_pruefung_am?String(f.letzte_pruefung_am).slice(0,10):'—'))
       +'<div class="pws-hint">Dauerstufe: Aktualität wird laufend gesichert (Auto-Checks, AppSumo).</div>';
   }
+  let editor='';
+  if(tabs.length){
+    editor=(tabs.length>1?('<div class="pws-subtabs">'+tabs.map(function(t){return '<button class="pws-subtab" data-t="'+t+'" onclick="pwsTab(\''+t+'\')">'+esc(PWS_TABLBL[t]||t)+'</button>';}).join('')+'</div>'):'')
+      +'<div id="pwsForm" class="pws-form"></div>'
+      +(n===1?'<div class="pws-acts" style="margin-top:12px"><button class="pws-act primary" onclick="saveStamm()"><i class="ti ti-check"></i> Stammdaten speichern</button></div>':'');
+  }
   let foot='';
   if(n<8){var nx=n+1;foot='<div class="pws-foot">'+(st.done?'<span class="pws-ok">Stufe erledigt ✔</span>':'<span class="pws-todo">'+(n===3?'Fertig, wenn 0 offene Funktionen & Tarife erfasst':'Erledige die offenen Punkte oben')+'</span>')+pwsBtn('Weiter zu Stufe '+nx,'pwsGoto('+nx+')','ti-arrow-right',1)+'</div>';}
-  return h+'<div class="pws-p-body">'+body+'</div>'+foot;
+  return h+'<div class="pws-p-body">'+body+editor+'</div>'+foot;
 }
 function pwsRender(){
   const cv=$("#customview");if(!cv||!PWS)return;
@@ -1502,6 +1519,7 @@ function pwsRender(){
     '<button class="tb" title="Status aktualisieren" onclick="pwsOpen(PWS.id)"><i class="ti ti-refresh"></i></button>'+
     '<div class="pws-h-prog"><div class="pws-h-pct">Stufe '+cur+'/8 · '+pct+'%</div><div class="pws-bar"><span style="width:'+pct+'%"></span></div></div>'+
     '</div><div class="pws-body"><div class="pws-rail">'+rail+'</div><div class="pws-panel" id="pwsPanel">'+pwsPanel(P,viewStage)+'</div></div></div>';
+  var _vt=pwsStageTabs(view);if(_vt.length){pwsTab(_vt[0]);}
 }
 function pwsGoto(n){if(!PWS)return;PWS._view=n;pwsRender();}
 function aov(title,sub,body,foot){$("#aTitle").textContent=title;$("#aSub").textContent=sub||"";$("#aBody").innerHTML=body;$("#aFoot").innerHTML=foot||'<span class="tb" onclick="closeAov()">Schließen</span>';$("#aov").classList.add("show");}
