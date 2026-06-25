@@ -149,6 +149,15 @@
   .wb-sc{font-size:11px;font-weight:700;border:1px solid currentColor;border-radius:8px;padding:0 5px}.wb-sc.lo{opacity:.7}
   .wb-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .wb-msel{height:28px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;padding:0 8px;max-width:230px}
+  .wb-ai{margin:0 0 9px;padding:9px 11px;border:1px solid #c7d2fe;background:#eef2ff;border-radius:9px}
+  .wb-ai-h{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:.04em}
+  .wb-ai-k{margin-left:auto;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .wb-ai-k.hi{background:#dcfce7;color:#15803d}.wb-ai-k.mid{background:#fef9c3;color:#a16207}.wb-ai-k.lo{background:#fee2e2;color:#b91c1c}
+  .wb-ai-rec{font-size:13.5px;margin-top:5px;color:#1e1b4b}.wb-ai-rec b{color:#3730a3}
+  .wb-ai-b{font-size:12px;color:#475569;margin-top:3px;line-height:1.45}
+  .wb-ai-btn{margin-top:8px;display:inline-flex;align-items:center;gap:5px;border:0;background:#4f46e5;color:#fff;font-weight:600;font-size:12.5px;padding:6px 12px;border-radius:7px;cursor:pointer}
+  .wb-ai-btn:hover{background:#4338ca}
+  .wb-kibar{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:-4px 0 14px}
   .yt-card.done{opacity:.6;cursor:default}
   .yt-card.done .yt-thumb{filter:grayscale(.4)}
   .yt-done{position:absolute;top:6px;left:6px;background:var(--ok);color:#fff;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:11px;display:inline-flex;align-items:center;gap:4px;z-index:2}
@@ -1200,14 +1209,22 @@ function wbRender(){const cv=$("#customview");if(!cv)return;
   if(!WBINBOX.length){cv.innerHTML='<div class="empty-tab" style="padding:64px 0"><i class="ti ti-circle-check" style="color:var(--ok);font-size:34px"></i><b>Inbox leer</b><div style="color:var(--muted);font-size:12.5px">Alle Feature-Begriffe sind zugeordnet.</div></div>';return;}
   const groups={};WBINBOX.forEach(x=>{(groups[x.sw]=groups[x.sw]||[]).push(x);});
   let html='<div class="intro" style="margin:-14px -16px 14px"><div class="ic"><i class="ti ti-inbox"></i></div><div><h2>Zuordnungs-Inbox</h2><p>Offene Feature-Begriffe aus Crawls &amp; Videos – sicher geparkt, <b>kein Begriff wird still angelegt</b>. Ein Tool wird erst <b>100 % &amp; vergleichbar</b>, wenn seine Begriffe zugeordnet sind. Passenden Vorschlag anklicken, zusammenführen, neu anlegen oder verwerfen.</p></div></div>';
+  html+='<div class="wb-kibar"><span style="font-size:11.5px;color:var(--muted)">KI prüft jeden Begriff gegen das Wörterbuch und empfiehlt Zuordnung oder Neuanlage.</span><button id="wbKiBtn" class="tb primary" onclick="wbKiLoad()"><i class="ti ti-sparkles"></i> KI-Empfehlungen laden</button></div>';
   Object.keys(groups).forEach(function(sw){const g=groups[sw];html+='<div class="wbg"><div class="wbg-h"><i class="ti ti-lock"></i> '+g.length+' offen — hält <b>'+esc(sw)+'</b> von 100 % ab</div>'+g.map(wbCard).join("")+'</div>';});
   cv.innerHTML=html;
 }
 function wbCard(x){const ac=wbAmpel(x.tage);
   const chips=x.kand.map(function(k){return '<span class="wb-cand '+(k.s>=70?"":"weak")+'" onclick="wbAct(\''+x.id+'\',\'merge\',\''+String(k.id)+'\')"><b>'+esc(k.c)+'</b><span class="wb-sc '+(k.s>=70?"hi":"lo")+'">'+k.s+'%</span> <i class="ti ti-plus"></i></span>';}).join("");
+  var aiBox='';
+  if(x.ai&&x.ai.canonical){var a=x.ai;var ex=WB_WB.find(function(w){return String(w.canonical_name).toLowerCase()===String(a.canonical).toLowerCase();});var kf=+a.konfidenz||0;var kc=kf>=80?'hi':(kf>=55?'mid':'lo');
+    aiBox='<div class="wb-ai"><div class="wb-ai-h"><i class="ti ti-sparkles"></i> KI-Empfehlung<span class="wb-ai-k '+kc+'">'+kf+'%</span></div>'+
+      '<div class="wb-ai-rec">'+(ex?'Zusammenführen mit ':'Neuen Canonical anlegen: ')+'<b>'+esc(a.canonical)+'</b></div>'+
+      (a.begruendung?'<div class="wb-ai-b">'+esc(a.begruendung)+'</div>':'')+
+      '<button class="wb-ai-btn" onclick="wbAiApply(\''+x.id+'\')"><i class="ti ti-check"></i> '+(ex?'Übernehmen':'Anlegen')+'</button></div>';}
   const opts=WB_WB.map(function(r){return '<option value="'+r.id+'">'+esc(r.canonical_name)+'</option>';}).join("");
   return '<div class="wb-card">'+
     '<div class="wb-top"><span class="age-b '+ac+'"><i class="ti ti-circle-filled" style="font-size:7px"></i> '+x.tage+' T</span><span class="wb-roh">'+esc(x.roh)+'</span><span class="pill">'+esc(x.art)+'</span><span class="wb-src"><i class="ti '+(x.q==="Video"?"ti-brand-youtube":"ti-spider")+'"></i> '+esc(x.q)+'</span></div>'+
+    aiBox+
     '<div class="wb-cands"><span class="wb-lab">Vorschläge</span>'+(chips||'<span class="wb-none" style="color:var(--faint);font-size:12px">keine ähnlichen – neu anlegen</span>')+'</div>'+
     '<div class="wb-acts"><select class="wb-msel" onchange="if(this.value){wbAct(\''+x.id+'\',\'merge\',this.value)}"><option value="">↪ Zusammenführen mit …</option>'+opts+'</select>'+
     '<span class="tb" onclick="wbAct(\''+x.id+'\',\'neu\')"><i class="ti ti-plus"></i> Neu anlegen</span>'+
@@ -1230,6 +1247,36 @@ async function wbAct(id,mode,val){const x=WBINBOX.find(z=>z.id===id);if(!x)retur
     }
     await wbView();
   }catch(e){alert('Aktion fehlgeschlagen: '+(e&&e.message?e.message:e));}
+}
+async function wbKiLoad(){if(!WBINBOX.length){toast('Inbox leer');return;}
+  const btn=$("#wbKiBtn");if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> KI denkt …';}
+  try{
+    const wb=WB_WB.map(function(c){return {canonical_name:c.canonical_name,kategorie:c.kategorie||''};});
+    const items=WBINBOX.map(function(x){return {id:String(x.id),name:x.roh,kategorie:x.kat||''};});
+    const by={};
+    for(var i=0;i<items.length;i+=60){const chunk=items.slice(i,i+60);
+      const r=await sb.functions.invoke('canonical-mapping',{body:{funktionen:chunk,woerterbuch:wb}});
+      if(r.error)throw r.error;const d=r.data||{};if(d.error)throw new Error(d.detail||d.error);
+      (d.vorschlaege||[]).forEach(function(v){by[String(v.id)]=v;});
+    }
+    var n=0;WBINBOX.forEach(function(x){x.ai=by[String(x.id)]||null;if(x.ai)n++;});
+    wbRender();toast('KI-Empfehlungen geladen ('+n+') ✓');
+  }catch(e){alert('KI-Empfehlung fehlgeschlagen: '+(e&&e.message?e.message:e));const b=$("#wbKiBtn");if(b){b.disabled=false;b.innerHTML='<i class="ti ti-sparkles"></i> KI-Empfehlungen laden';}}
+}
+async function wbAiApply(id){const x=WBINBOX.find(z=>z.id===id);if(!x||!x.ai||!x.ai.canonical){toast('Keine Empfehlung');return;}
+  const canon=String(x.ai.canonical).trim();const ex=WB_WB.find(function(w){return String(w.canonical_name).toLowerCase()===canon.toLowerCase();});
+  try{
+    if(ex){
+      await dbW('update','funktionen',id,{canonical_name:ex.canonical_name,geaendert_am:new Date().toISOString()},'funktions_id');
+      const syn=ex.synonyme||[];if(!syn.some(s=>String(s).toLowerCase()===x.roh.toLowerCase())){await dbW('update','funktions_woerterbuch',ex.id,{synonyme:syn.concat([x.roh]),geaendert_am:new Date().toISOString()});}
+      toast('„'+x.roh+'" → '+ex.canonical_name+' ✓');
+    }else{
+      await dbW('create','funktions_woerterbuch',null,{canonical_name:canon,kategorie:x.kat||'Sonstige',synonyme:[x.roh]});
+      await dbW('update','funktionen',id,{canonical_name:canon,geaendert_am:new Date().toISOString()},'funktions_id');
+      toast('Neuer Canonical „'+canon+'" angelegt ✓');
+    }
+    await wbView();
+  }catch(e){alert('Übernehmen fehlgeschlagen: '+(e&&e.message?e.message:e));}
 }
 function updateWbBadge(){const b=$("#wbBadge");if(b){if(WBINBOX.length){b.textContent=WBINBOX.length;b.style.display="";}else{b.style.display="none";}}}
 
