@@ -1014,7 +1014,7 @@ async function neueSoftwareSave(){
   let kw=g("nsKw")||name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
   if(!name||!her||!url||!kat){toast("Bitte Name, Hersteller, URL und Kategorie ausfüllen.");return;}
   if(KATS&&KATS.length&&KATS.indexOf(kat)<0){toast('Bitte eine vorhandene Kategorie wählen – im Menü Kategorien anlegen.');return;}
-  try{ await dbW("create","software",null,{name,hersteller:her,hersteller_url:url,kategorie:kat,ziel_schluesselwort:kw}); toast("„"+name+"\" angelegt"); closeAov(); await ladeSW(); render(); }
+  try{ await dbW("create","software",null,{name,hersteller:her,hersteller_url:url,kategorie:kat,ziel_schluesselwort:kw}); toast("„"+name+"\" angelegt"); closeAov(); await ladeSW(); const _nr=VIEWS.software.rows.find(function(x){return x.name===name;}); if(_nr&&_nr.id){pwsOpen(_nr.id);}else{render();} }
   catch(e){ alert("Anlegen fehlgeschlagen: "+(e&&e.message?e.message:e)); }
 }
 function onRow(i){if(CUR==="software"){const r=VIEWS.software.rows[i];if(r&&r.id){pwsOpen(r.id);return;}openDlg(i);}else if(CUR==="freigaben")freigabeOeffnen(i);else openEdit(i);}
@@ -1066,7 +1066,7 @@ async function openDlg(i){DLGFORM="dForm";const neu=i<0;dlgRow=neu?{name:"",hers
   }
 }
 function setTab(t){dlgTab=t;document.querySelectorAll("#ov .dn").forEach(d=>d.classList.toggle("active",d.dataset.tab===t));renderTab();}
-function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent};var _ff=document.getElementById(DLGFORM);if(_ff)_ff.innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}
+function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent};var _ff=document.getElementById(DLGFORM);if(_ff){try{_ff.innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}catch(e){_ff.innerHTML='<div style="padding:18px;color:var(--muted)">Editor konnte nicht geladen werden.</div>';}}if(DLGFORM==='pwsForm'){try{pwsSyncRail();}catch(e){}}}
 function emptyTab(ic,t,d){return `<div class="empty-tab"><i class="ti ${ic}"></i><b>${t}</b><div class="d">${d||""}</div></div>`;}
 async function saveStamm(){
   const sid=(dlgRow&&dlgRow.id)||(dlgRow&&dlgRow._d&&dlgRow._d.full&&dlgRow._d.full.id);
@@ -1439,13 +1439,14 @@ async function pwsOpen(id){
   pwsRender();
 }
 function pwsStages(P){
-  const f=P.full||{};
-  const offeneFunk=(P.funk||[]).filter(function(x){return !(x.canonical_name&&String(x.canonical_name).trim());}).length;
+  const f=P.full||{};const dd=(dlgRow&&dlgRow._d)||{};
+  const funkA=dd.funk||P.funk||[];const preiseA=dd.preise||P.preise||[];
+  const offeneFunk=funkA.filter(function(x){return !(x.canonical_name&&String(x.canonical_name).trim());}).length;
   const offeneFrei=(P.freigaben||[]).filter(function(x){return x.status!=='entschieden';}).length;
   const done={};
   done[1]=!!(f.name&&f.hersteller&&f.hersteller_url&&f.kategorie);
-  done[2]=(P.funk||[]).length>0||(P.preise||[]).length>0;
-  done[3]=offeneFunk===0&&(P.funk||[]).length>0&&(P.preise||[]).length>0;
+  done[2]=funkA.length>0||preiseA.length>0;
+  done[3]=offeneFunk===0&&funkA.length>0&&preiseA.length>0;
   done[4]=(P.quellen||[]).length>0&&P.synthese&&!!f.logo_pfad;
   done[5]=offeneFrei===0;
   done[6]=done[1]&&done[2]&&done[3]&&done[4]&&done[5];
@@ -1539,6 +1540,10 @@ function pwsRender(){
   var _vt=pwsStageTabs(view);if(_vt.length){pwsTab(_vt[0]);}
 }
 function pwsGoto(n){if(!PWS)return;PWS._view=n;pwsRender();}
+function pwsSyncRail(){if(!PWS||CUR!=='produkt')return;const stages=pwsStages(PWS);const cur=stages[0].cur;const view=PWS._view||cur;const doneN=stages.filter(function(s){return s.n<=7&&s.done;}).length;const pct=Math.round(doneN/7*100);
+  const railEl=document.querySelector('.pws-rail');if(railEl)railEl.innerHTML=stages.map(function(s){var ic=s.state==='done'?'ti-circle-check':s.state==='current'?'ti-player-play-filled':s.state==='pflege'?'ti-refresh':'ti-circle';return '<button class="pws-step '+s.state+(s.n===view?' sel':'')+'" onclick="pwsGoto('+s.n+')"><span class="pws-st-ic"><i class="ti '+ic+'"></i></span><span class="pws-st-n">'+s.n+'</span><span class="pws-st-t">'+esc(s.t)+'</span></button>';}).join('');
+  const pe=document.querySelector('.pws-h-pct');if(pe)pe.textContent='Stufe '+cur+'/8 · '+pct+'%';
+  const be=document.querySelector('.pws-bar span');if(be)be.style.width=pct+'%';}
 function aov(title,sub,body,foot){$("#aTitle").textContent=title;$("#aSub").textContent=sub||"";$("#aBody").innerHTML=body;$("#aFoot").innerHTML=foot||'<span class="tb" onclick="closeAov()">Schließen</span>';$("#aov").classList.add("show");}
 function closeAov(){$("#aov").classList.remove("show");}
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2200);}
