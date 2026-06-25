@@ -157,6 +157,7 @@
   .wb-ai-b{font-size:12px;color:#475569;margin-top:3px;line-height:1.45}
   .wb-ai-btn{margin-top:8px;display:inline-flex;align-items:center;gap:5px;border:0;background:#4f46e5;color:#fff;font-weight:600;font-size:12.5px;padding:6px 12px;border-radius:7px;cursor:pointer}
   .wb-ai-btn:hover{background:#4338ca}
+  .wb-ai-dup{font-size:11.5px;color:#7c3aed;background:#f5f3ff;border:1px dashed #c4b5fd;border-radius:6px;padding:5px 8px;margin-top:7px;display:flex;gap:5px;align-items:center;line-height:1.4}
   .wb-kibar{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:-4px 0 14px}
   .yt-card.done{opacity:.6;cursor:default}
   .yt-card.done .yt-thumb{filter:grayscale(.4)}
@@ -1217,10 +1218,12 @@ function wbRender(){const cv=$("#customview");if(!cv)return;
 function wbCard(x){const ac=wbAmpel(x.tage);
   const chips=x.kand.map(function(k){return '<span class="wb-cand '+(k.s>=70?"":"weak")+'" onclick="wbAct(\''+x.id+'\',\'merge\',\''+String(k.id)+'\')"><b>'+esc(k.c)+'</b><span class="wb-sc '+(k.s>=70?"hi":"lo")+'">'+k.s+'%</span> <i class="ti ti-plus"></i></span>';}).join("");
   var aiBox='';
-  if(x.ai&&x.ai.canonical){var a=x.ai;var ex=WB_WB.find(function(w){return String(w.canonical_name).toLowerCase()===String(a.canonical).toLowerCase();});var kf=+a.konfidenz||0;var kc=kf>=80?'hi':(kf>=55?'mid':'lo');
+  if(x.ai&&x.ai.canonical){var a=x.ai;var ex=WB_WB.find(function(w){return wbCanonKey(w.canonical_name)===wbCanonKey(a.canonical);});var kf=+a.konfidenz||0;var kc=kf>=80?'hi':(kf>=55?'mid':'lo');
+    var dupN=0;if(!ex){var ak=wbCanonKey(a.canonical);dupN=WBINBOX.filter(function(z){return z.id!==x.id&&z.ai&&z.ai.canonical&&!WB_WB.find(function(w){return wbCanonKey(w.canonical_name)===wbCanonKey(z.ai.canonical);})&&wbCanonKey(z.ai.canonical)===ak;}).length;}
     aiBox='<div class="wb-ai"><div class="wb-ai-h"><i class="ti ti-sparkles"></i> KI-Empfehlung<span class="wb-ai-k '+kc+'">'+kf+'%</span></div>'+
-      '<div class="wb-ai-rec">'+(ex?'Zusammenführen mit ':'Neuen Canonical anlegen: ')+'<b>'+esc(a.canonical)+'</b></div>'+
+      '<div class="wb-ai-rec">'+(ex?'Zusammenführen mit ':'Neuen Canonical anlegen: ')+'<b>'+esc(ex?ex.canonical_name:a.canonical)+'</b></div>'+
       (a.begruendung?'<div class="wb-ai-b">'+esc(a.begruendung)+'</div>':'')+
+      (dupN>0?'<div class="wb-ai-dup"><i class="ti ti-arrow-merge"></i> Auch für '+dupN+' weitere'+(dupN>1?' Begriffe':'n Begriff')+' empfohlen – einmal anlegen, der Rest wird danach automatisch als Zusammenführen erkannt.</div>':'')+
       '<button class="wb-ai-btn" onclick="wbAiApply(\''+x.id+'\')"><i class="ti ti-check"></i> '+(ex?'Übernehmen':'Anlegen')+'</button></div>';}
   const opts=WB_WB.map(function(r){return '<option value="'+r.id+'">'+esc(r.canonical_name)+'</option>';}).join("");
   return '<div class="wb-card">'+
@@ -1238,20 +1241,29 @@ async function wbAct(id,mode,val){const x=WBINBOX.find(z=>z.id===id);if(!x)retur
       const syn=c.synonyme||[];if(!syn.some(s=>String(s).toLowerCase()===x.roh.toLowerCase())){await dbW('update','funktions_woerterbuch',c.id,{synonyme:syn.concat([x.roh]),geaendert_am:new Date().toISOString()});}
       toast('„'+x.roh+'" → '+c.canonical_name+' ✓');
     }else if(mode==="neu"){
-      await dbW('create','funktions_woerterbuch',null,{canonical_name:x.roh,kategorie:x.kat||'Sonstige',synonyme:[x.roh]});
-      await dbW('update','funktionen',id,{canonical_name:x.roh,geaendert_am:new Date().toISOString()},'funktions_id');
-      toast('Neuer Canonical „'+x.roh+'" angelegt ✓');
+      const dupc=WB_WB.find(function(w){return wbCanonKey(w.canonical_name)===wbCanonKey(x.roh);});
+      if(dupc){
+        await dbW('update','funktionen',id,{canonical_name:dupc.canonical_name,geaendert_am:new Date().toISOString()},'funktions_id');
+        const syn=dupc.synonyme||[];if(!syn.some(function(s){return String(s).toLowerCase()===x.roh.toLowerCase();})){await dbW('update','funktions_woerterbuch',dupc.id,{synonyme:syn.concat([x.roh]),geaendert_am:new Date().toISOString()});}
+        toast('„'+x.roh+'" → '+dupc.canonical_name+' (bereits vorhanden) ✓');
+      }else{
+        await dbW('create','funktions_woerterbuch',null,{canonical_name:x.roh,kategorie:x.kat||'Sonstige',synonyme:[x.roh]});
+        await dbW('update','funktionen',id,{canonical_name:x.roh,geaendert_am:new Date().toISOString()},'funktions_id');
+        toast('Neuer Canonical „'+x.roh+'" angelegt ✓');
+      }
     }else if(mode==="verwerfen"){
       if(!confirm('Funktion „'+x.roh+'" verwerfen (löschen)?\nNur wenn es kein echtes Feature ist (Marketing-Floskel o. Ä.).'))return;
       await dbW('delete','funktionen',id,null,'funktions_id');
       toast('„'+x.roh+'" verworfen');
     }
-    if(mode==="neu")await wbRefreshWBOnly();
+    if(mode==="neu"){await wbRefreshWBOnly();wbRecompKand();}
     WBINBOX=WBINBOX.filter(function(z){return z.id!==id;});
     wbRender();updateWbBadge();
   }catch(e){alert('Aktion fehlgeschlagen: '+(e&&e.message?e.message:e));}
 }
+function wbCanonKey(s){return String(s||'').toLowerCase().replace(/\([^)]*\)/g,'').replace(/[^a-z0-9äöüß]/g,'');}
 async function wbRefreshWBOnly(){try{const r=await sb.from('funktions_woerterbuch').select('id,canonical_name,kategorie,synonyme').order('canonical_name');WB_WB=r.data||[];}catch(e){}}
+function wbRecompKand(){WBINBOX.forEach(function(x){x.kand=WB_WB.map(function(c){return {c:c.canonical_name,id:c.id,s:wbScore(x.roh,c)};}).filter(function(k){return k.s>=12;}).sort(function(a,b){return b.s-a.s;}).slice(0,3);});}
 function wbCopyCmd(){const t='Schlage für die offenen Feature-Begriffe in der Zuordnungs-Inbox (Cockpit) die Canonical-Zuordnung vor (bestehende canonical-mapping-Logik): je Begriff passender Canonical zum Zusammenführen ODER ein sauberer, tool-neutraler neuer Canonical, jeweils mit Konfidenz und kurzer Begründung. WICHTIG: Schreibe noch NICHTS in die Datenbank – leg mir zuerst die komplette Vorschlagsliste vor; ich gebe frei, was übernommen wird (alles / nur einzelne / keine). Erst nach meiner Freigabe zusammenführen (Rohname als Synonym ergänzen) bzw. neue Canonicals anlegen.';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Befehl für Claude Code kopiert ✓');},function(){toast('Kopieren nicht möglich');});}else{toast('Kopieren nicht möglich');}}
 async function wbKiLoad(){if(!WBINBOX.length){toast('Inbox leer');return;}
   const btn=$("#wbKiBtn");if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> KI denkt …';}
@@ -1269,7 +1281,7 @@ async function wbKiLoad(){if(!WBINBOX.length){toast('Inbox leer');return;}
   }catch(e){alert('KI-Empfehlung fehlgeschlagen: '+(e&&e.message?e.message:e));const b=$("#wbKiBtn");if(b){b.disabled=false;b.innerHTML='<i class="ti ti-sparkles"></i> KI-Empfehlungen laden';}}
 }
 async function wbAiApply(id){const x=WBINBOX.find(z=>z.id===id);if(!x||!x.ai||!x.ai.canonical){toast('Keine Empfehlung');return;}
-  const canon=String(x.ai.canonical).trim();const ex=WB_WB.find(function(w){return String(w.canonical_name).toLowerCase()===canon.toLowerCase();});
+  const canon=String(x.ai.canonical).trim();const ex=WB_WB.find(function(w){return wbCanonKey(w.canonical_name)===wbCanonKey(canon);});
   try{
     if(ex){
       await dbW('update','funktionen',id,{canonical_name:ex.canonical_name,geaendert_am:new Date().toISOString()},'funktions_id');
@@ -1280,7 +1292,7 @@ async function wbAiApply(id){const x=WBINBOX.find(z=>z.id===id);if(!x||!x.ai||!x
       await dbW('update','funktionen',id,{canonical_name:canon,geaendert_am:new Date().toISOString()},'funktions_id');
       toast('Neuer Canonical „'+canon+'" angelegt ✓');
     }
-    if(!ex)await wbRefreshWBOnly();
+    if(!ex){await wbRefreshWBOnly();wbRecompKand();}
     WBINBOX=WBINBOX.filter(function(z){return z.id!==id;});
     wbRender();updateWbBadge();
   }catch(e){alert('Übernehmen fehlgeschlagen: '+(e&&e.message?e.message:e));}
