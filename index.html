@@ -1507,6 +1507,13 @@ function pwsEditor(tab){if(!PWS)return;const i=VIEWS.software.rows.findIndex(fun
 function pwsStageTabs(n){return n===1?['stammdaten']:n===3?['funktionen','preise','integrationen','faelle']:n===4?['bewertungen','bilder','videos']:n===7?['content']:[];}
 const PWS_TABLBL={stammdaten:'Stammdaten',funktionen:'Funktionen',preise:'Tarife',integrationen:'Integrationen',faelle:'Anwendungsfälle',bewertungen:'Bewertungen',bilder:'Bilder',videos:'Videos',content:'Content'};
 function pwsTab(tab){dlgTab=tab;DLGFORM='pwsForm';renderTab();document.querySelectorAll('.pws-subtab').forEach(function(b){b.classList.toggle('on',b.dataset.t===tab);});}
+async function pwsFirmendaten(btn){if(!PWS)return;const sid=PWS.id;if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Suche Impressum …';}
+  try{const r=await sb.functions.invoke('firmendaten-extrahieren',{body:{software_id:sid}});if(r.error)throw r.error;const d=r.data||{};if(d.error)throw new Error(d.detail||d.error);
+    const keys=d.updated?Object.keys(d.updated).filter(function(x){return x!=='geaendert_am';}):[];
+    toast(keys.length?('Firmendaten übernommen: '+keys.length+' Felder ✓'):'Nichts eindeutig Belegbares gefunden');
+    await pwsOpen(sid);
+  }catch(e){alert('Firmendaten-Abruf fehlgeschlagen: '+(e&&e.message?e.message:e));if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-building-skyscraper"></i> Firmendaten aus Impressum holen';}}
+}
 function pwsPanel(P,st){
   const f=P.full||{};const k=st.key;const tabs=st.tabs||[];
   let h='<div class="pws-p-head"><span class="pws-p-n">Stufe '+st.n+'</span><h2>'+esc(st.t)+infoH(st.info)+'</h2></div><div class="pws-kind"><span class="pk-b '+(st.kind||'todo')+'">'+(st.kind==='info'?'Info':'ToDo')+'</span><span>'+esc(st.todo||'')+'</span></div>';
@@ -1547,7 +1554,7 @@ function pwsPanel(P,st){
   if(tabs.length){
     editor=(tabs.length>1?('<div class="pws-subtabs">'+tabs.map(function(t){return '<button class="pws-subtab" data-t="'+t+'" onclick="pwsTab(\''+t+'\')">'+esc(PWS_TABLBL[t]||t)+'</button>';}).join('')+'</div>'):'')
       +'<div id="pwsForm" class="pws-form"></div>'
-      +(k==='anlegen'?'<div class="pws-acts" style="margin-top:12px"><button class="pws-act primary" onclick="saveStamm()"><i class="ti ti-check"></i> Stammdaten speichern</button></div>':'');
+      +(k==='anlegen'?'<div class="pws-acts" style="margin-top:12px"><button class="pws-act primary" onclick="saveStamm()"><i class="ti ti-check"></i> Stammdaten speichern</button><button class="pws-act" onclick="pwsFirmendaten(this)"><i class="ti ti-building-skyscraper"></i> Firmendaten aus Impressum holen</button></div>':'');
   }
   let foot='';
   if(st.n<st.total){var nx=st.n+1;foot='<div class="pws-foot">'+(st.done?'<span class="pws-ok">Stufe erledigt ✔</span>':'<span class="pws-todo">'+(k==='ordnen'?'Fertig, wenn 0 offene Funktionen & Tarife erfasst':'Erledige die offenen Punkte oben')+'</span>')+pwsBtn('Weiter zu Stufe '+nx,'pwsGoto('+nx+')','ti-arrow-right',1)+'</div>';}
