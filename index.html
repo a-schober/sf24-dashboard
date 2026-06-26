@@ -561,13 +561,50 @@ function mapRow(r,i){
     status:st, geprueft:(r.letzte_pruefung_am||"").slice(0,10), nw:r.neuronwriter_score, ltd:!!r.hat_ltd,
     _hue:HUE[i%HUE.length] };
 }
+function stagePct(me,sg){
+  me=me||{};sg=sg||{};
+  const anlegen=!!(me.name&&me.hersteller&&me.url&&me.kategorie);
+  const medien=(sg.bilder||0)>0||(sg.videos||0)>0;
+  const sammeln=(sg.funkTotal||0)>0||(sg.preise||0)>0;
+  const ordnen=(sg.funkOffen||0)===0&&(sg.funkTotal||0)>0&&(sg.preise||0)>0;
+  const belegen=(sg.quellen||0)>0&&!!sg.synthese&&!!me.logo;
+  const pruefen=(sg.freiOffen||0)===0;
+  const schluss=anlegen&&sammeln&&ordnen&&belegen&&pruefen;
+  const veroeff=!!sg.artikel;
+  const done=[anlegen,medien,sammeln,ordnen,belegen,pruefen,schluss,veroeff].filter(Boolean).length;
+  return Math.round(done/8*100);
+}
 async function ladeSW(){
   const {data,error}=await sb.from("cockpit_startseite").select("*").order("name");
   if(error){ if(typeof toast==="function")toast("Laden fehlgeschlagen: "+error.message); return; }
   let logoMap={};
   let asMap={};
-  try{const lr=await sb.from('software').select('id,logo_pfad,appsumo_deal');(lr.data||[]).forEach(function(s){asMap[s.id]=!!s.appsumo_deal;if(s.logo_pfad){try{logoMap[s.id]=sb.storage.from('software-logos').getPublicUrl(s.logo_pfad).data.publicUrl;}catch(e){}}});}catch(e){}
-  SW=(data||[]).map(function(r,i){const m=mapRow(r,i);m._logo=logoMap[r.id]||null;m.ltd=!!asMap[r.id];return m;}); VIEWS.software.rows=SW;
+  const sig={};
+  const swMeta={};
+  const _g=function(id){return sig[id]||(sig[id]={funkTotal:0,funkOffen:0,preise:0,quellen:0,synthese:false,freiOffen:0,artikel:false,bilder:0,videos:0});};
+  try{
+    const qs=await Promise.all([
+      sb.from('software').select('id,name,hersteller,hersteller_url,kategorie,logo_pfad,appsumo_deal'),
+      sb.from('funktionen').select('software_id,canonical_name'),
+      sb.from('preise').select('software_id'),
+      sb.from('quellen').select('software_id'),
+      sb.from('bewertungs_synthesen').select('software_id'),
+      sb.from('freigaben').select('software_id,status'),
+      sb.from('inhalts_artikel').select('software_id'),
+      sb.from('software_bilder').select('software_id'),
+      sb.from('hersteller_videos').select('software_id')
+    ]);
+    (qs[0].data||[]).forEach(function(s){swMeta[s.id]={name:s.name,hersteller:s.hersteller,url:s.hersteller_url,kategorie:s.kategorie,logo:!!s.logo_pfad};asMap[s.id]=!!s.appsumo_deal;if(s.logo_pfad){try{logoMap[s.id]=sb.storage.from('software-logos').getPublicUrl(s.logo_pfad).data.publicUrl;}catch(e){}}});
+    (qs[1].data||[]).forEach(function(x){const g=_g(x.software_id);g.funkTotal++;if(!(x.canonical_name&&String(x.canonical_name).trim()))g.funkOffen++;});
+    (qs[2].data||[]).forEach(function(x){_g(x.software_id).preise++;});
+    (qs[3].data||[]).forEach(function(x){_g(x.software_id).quellen++;});
+    (qs[4].data||[]).forEach(function(x){_g(x.software_id).synthese=true;});
+    (qs[5].data||[]).forEach(function(x){if((x.status||'offen')!=='entschieden')_g(x.software_id).freiOffen++;});
+    (qs[6].data||[]).forEach(function(x){_g(x.software_id).artikel=true;});
+    (qs[7].data||[]).forEach(function(x){_g(x.software_id).bilder++;});
+    (qs[8].data||[]).forEach(function(x){_g(x.software_id).videos++;});
+  }catch(e){}
+  SW=(data||[]).map(function(r,i){const m=mapRow(r,i);m._logo=logoMap[r.id]||null;m.ltd=!!asMap[r.id];m.pct=stagePct(swMeta[r.id],sig[r.id]);return m;}); VIEWS.software.rows=SW;
 }
 function nwOf(r){const v=r.nw;if(v==null)return{v:null,lab:"Kein Artikel",c:"n"};return{v:v,lab:v>=80?"Stark (80+)":v>=70?"Solide (70-79)":"Schwach (unter 70)",c:v>=80?"g":v>=70?"a":"r"};}
 const HEUTE=new Date();
