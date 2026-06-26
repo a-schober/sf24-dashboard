@@ -1502,9 +1502,11 @@ async function pwsOpen(id){
       sb.from('quellen').select('id').eq('software_id',id),
       sb.from('bewertungs_synthesen').select('id').eq('software_id',id).limit(1),
       sb.from('freigaben').select('id,status').eq('software_id',id),
-      sb.from('inhalts_artikel').select('id,inhalts_status').eq('software_id',id).limit(1)
+      sb.from('inhalts_artikel').select('id,inhalts_status').eq('software_id',id).limit(1),
+      sb.from('ssot_verifikation').select('status,tabelle,ref,grund').eq('software_id',id)
     ]);
     PWS={id:id,full:res[0].data||{},funk:res[1].data||[],preise:res[2].data||[],integ:res[3].data||[],faelle:res[4].data||[],quellen:res[5].data||[],synthese:(res[6].data||[]).length>0,freigaben:res[7].data||[],artikel:(res[8].data||[])[0]||null};
+    PWS.beleg=pwsBelegAus((res[9]&&res[9].data)||[]);
     const lr=VIEWS.software.rows.find(function(r){return String(r.id)===String(id);});
     dlgRow=lr||{id:id,name:PWS.full.name,hersteller:PWS.full.hersteller,kat:PWS.full.kategorie,markt:'DE',status:PWS.full.status||'neu',_hue:'#64748b'};
     dlgRow._d={full:PWS.full,funk:PWS.funk,preise:PWS.preise,integ:PWS.integ,faelle:PWS.faelle,lade:false};
@@ -1537,7 +1539,7 @@ function pwsStages(P){
   done.sammeln=funkA.length>0||preiseA.length>0;
   done.ordnen=offeneFunk===0&&funkA.length>0&&preiseA.length>0;
   done.belegen=(P.quellen||[]).length>0&&P.synthese&&!!f.logo_pfad;
-  done.pruefen=offeneFrei===0;
+  done.pruefen=offeneFrei===0&&(!P.beleg||(P.beleg.unbelegt||0)===0);
   done.schluss=done.anlegen&&done.sammeln&&done.ordnen&&done.belegen&&done.pruefen;
   done.veroeffentlichen=!!(P.artikel&&P.artikel.inhalts_status==='live');
   const total=defs.length;
@@ -1558,13 +1560,12 @@ function pwsStageTabs(n){return n===1?['stammdaten']:n===3?['funktionen','preise
 const PWS_TABLBL={stammdaten:'Stammdaten',funktionen:'Funktionen',preise:'Tarife',integrationen:'Integrationen',faelle:'Anwendungsfälle',bewertungen:'Bewertungen',bilder:'Bilder',videos:'Videos',content:'Content'};
 function pwsTab(tab){dlgTab=tab;DLGFORM='pwsForm';renderTab();document.querySelectorAll('.pws-subtab').forEach(function(b){b.classList.toggle('on',b.dataset.t===tab);});}
 async function pwsPublish(){if(!PWS||!PWS.artikel||!PWS.artikel.id){toast('Kein Artikel vorhanden – erst Content erzeugen.');return;}
-  let gate=null;
-  try{toast('Anti-Halluzinations-Check läuft … (Belege gegen Quellen)');const gr=await sb.functions.invoke('beleg-extrahieren',{body:{software_id:PWS.id}});if(gr&&!gr.error)gate=gr.data;}catch(e){}
-  if(gate&&gate.unbelegt>0){
-    const liste=(gate.offen||[]).slice(0,10).map(function(o){return '• '+o.tabelle+': '+o.ref;}).join('\n');
-    if(!confirm('⚠️ Anti-Halluzinations-Check: '+gate.unbelegt+' Fakt(en) OHNE belegbares Quell-Zitat (potenzielle Halluzination oder fehlende Quelle):\n\n'+liste+((gate.offen&&gate.offen.length>10)?'\n…':'')+'\n\nEmpfehlung: erst prüfen/korrigieren. Trotzdem JETZT veröffentlichen?'))return;
-  }else if(gate){toast('Beleg-Check bestanden: '+gate.belegt+' belegt, '+gate.synthese+' Synthese ✓');}
-  if(!confirm('Artikel jetzt live schalten und veröffentlichen?\nStelle sicher, dass du den Inhalt im Tab „Content" geprüft hast.'))return;
+  toast('Anti-Halluzinations-Check läuft … (Belege gegen Quellen, ~1 Min)');
+  try{const gr=await sb.functions.invoke('beleg-extrahieren',{body:{software_id:PWS.id}});if(gr&&!gr.error)await pwsLadeBeleg();}catch(e){}
+  try{pwsSyncRail();}catch(e){}
+  var _b=PWS.beleg;
+  if(_b&&(_b.unbelegt||0)>0){alert('🛡️ Veröffentlichen gesperrt: '+_b.unbelegt+' Fakt(en) ohne belegbares Quell-Zitat (potenzielle Halluzination).\n\nBitte in Stufe „Prüfen & freigeben" klären – korrigieren oder, wenn sicher korrekt, „Geprüft" setzen. So kommt keine Halluzination live.');PWS._view=6;try{pwsRender();}catch(e){}return;}
+  if(!confirm('Beleg-Check bestanden ✓'+(_b?(' – '+_b.belegt+' belegt'):'')+'.\nArtikel jetzt live schalten und veröffentlichen?'))return;
   try{const now=new Date().toISOString();await dbW('update','inhalts_artikel',PWS.artikel.id,{inhalts_status:'live',geaendert_am:now});try{await dbW('update','software',PWS.id,{letzte_pruefung_am:now});}catch(e){}PWS.artikel.inhalts_status='live';if(PWS.full)PWS.full.letzte_pruefung_am=now;toast('Veröffentlicht ✓ – Artikel ist live');try{pwsSyncRail();}catch(e){}try{await ladeSW();}catch(e){}runBuild('de');}catch(e){alert('Veröffentlichen fehlgeschlagen: '+(e&&e.message?e.message:e));}}
 async function pwsFirmendaten(btn){if(!PWS)return;const sid=PWS.id;if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Suche Impressum …';}
   try{const r=await sb.functions.invoke('firmendaten-extrahieren',{body:{software_id:sid}});if(r.error)throw r.error;const d=r.data||{};if(d.error)throw new Error(d.detail||d.error);
@@ -1580,6 +1581,15 @@ async function pwsBewExtern(btn){if(!PWS)return;const sid=PWS.id;if(btn){btn.dis
     await pwsOpen(sid);
   }catch(e){alert('Bewertungs-Abruf fehlgeschlagen: '+(e&&e.message?e.message:e));if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-star"></i> Externe Bewertungen holen (G2/Capterra/Trustpilot)';}}
 }
+function pwsBelegAus(rows){if(!rows||!rows.length)return null;var c=function(s){return rows.filter(function(x){return x.status===s;}).length;};return {belegt:c('belegt'),synthese:c('synthese'),mensch:c('mensch_bestaetigt'),unbelegt:c('unbelegt'),offen:rows.filter(function(x){return x.status==='unbelegt';}).map(function(x){return {tabelle:x.tabelle,ref:x.ref,grund:x.grund};})};}
+async function pwsLadeBeleg(){if(!PWS)return;try{const r=await sb.from('ssot_verifikation').select('status,tabelle,ref,grund').eq('software_id',PWS.id);PWS.beleg=pwsBelegAus((r&&r.data)||[]);}catch(e){}}
+async function pwsBelegCheck(btn){if(!PWS)return;if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Prüfe Belege gegen Quellen … (~1 Min)';}
+  try{const r=await sb.functions.invoke('beleg-extrahieren',{body:{software_id:PWS.id}});if(r&&r.error)throw r.error;await pwsLadeBeleg();try{pwsSyncRail();}catch(e){}var b=PWS.beleg||{};toast('Beleg-Prüfung fertig: '+(b.belegt||0)+' belegt · '+(b.unbelegt||0)+' offen');}
+  catch(e){alert('Beleg-Prüfung fehlgeschlagen: '+(e&&e.message?e.message:e));if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-shield-check"></i> Belege jetzt prüfen';}}}
+async function pwsBelegAck(oi){if(!PWS||!PWS.beleg||!PWS.beleg.offen||!PWS.beleg.offen[oi])return;var o=PWS.beleg.offen[oi];
+  if(!confirm('„'+o.ref+'" als manuell GEPRÜFT markieren?\nNur bestätigen, wenn die Aussage nachweislich korrekt ist – sonst korrigieren oder entfernen.'))return;
+  try{await sb.from('ssot_verifikation').update({status:'mensch_bestaetigt',grund:'manuell als geprüft bestätigt'}).eq('software_id',PWS.id).eq('tabelle',o.tabelle).eq('ref',o.ref).eq('status','unbelegt');await pwsLadeBeleg();try{pwsSyncRail();}catch(e){}toast('Als geprüft markiert ✓');}
+  catch(e){alert('Fehlgeschlagen: '+(e&&e.message?e.message:e));}}
 function pwsBody(P,st){
   const f=P.full||{};const k=st.key;
   if(k==='anlegen')return '';
@@ -1587,7 +1597,13 @@ function pwsBody(P,st){
   if(k==='sammeln')return pwsRow((P.funk||[]).length>0,(P.funk||[]).length+' Roh-Funktionen erfasst')+pwsRow((P.preise||[]).length>0,(P.preise||[]).length+' Tarife erfasst')+'<div class="pws-acts">'+pwsBtn('Crawl-Status öffnen','route(\'crawl\')','ti-spider',1)+'</div>';
   if(k==='ordnen')return pwsRow(st.offeneFunk===0&&(P.funk||[]).length>0,'Funktionen zugeordnet – '+st.offeneFunk+' offen','Was tun: jeden Roh-Begriff einem Canonical zuordnen. Ziel: 0 offene Funktionen.')+pwsRow((P.preise||[]).length>0,'Tarife erfasst')+pwsRow(false,'Limits je Tarif (empfohlen, optional)','Optional: Kontingente je Tarif. Blockiert „Weiter" nicht – nicht jedes Tool veröffentlicht Limits.');
   if(k==='belegen')return pwsRow((P.quellen||[]).length>0,(P.quellen||[]).length+' Quellen')+pwsRow(P.synthese,'Bewertungs-Synthese vorhanden')+pwsRow(!!f.logo_pfad,'Logo gesetzt','',pwsBtn('Logos verwalten','route(\'logos\')','ti-photo'))+pwsRow(!!f.appsumo_geprueft_am,'AppSumo geprüft')+'<div class="pws-acts">'+pwsBtn('Externe Bewertungen holen (G2/Capterra/Trustpilot)','pwsBewExtern(this)','ti-star',1)+'</div>';
-  if(k==='pruefen')return pwsRow(st.offeneFrei===0,'Offene Freigaben: '+st.offeneFrei,'',pwsBtn('Freigaben öffnen','route(\'freigaben\')','ti-checkbox'))+pwsRow(true,'Crawl-Status / Validierung','',pwsBtn('Crawl-Status','route(\'crawl\')','ti-spider'));
+  if(k==='pruefen'){var b=P.beleg,bb;
+    if(!b){bb='<div style="border:1px solid var(--line);border-left:4px solid #6366f1;border-radius:12px;padding:14px 16px;margin:12px 0;background:var(--soft,#f8fafc)"><b style="font-size:14px">🛡️ Beleg-Prüfung <small style="font-weight:400;color:var(--muted)">(Anti-Halluzination)</small></b><div style="font-size:12.5px;color:var(--muted);margin:6px 0 10px">Prüft automatisch, ob <b>jede Aussage</b> (Funktion, Tarif, Integration) ein <b>wörtliches Zitat aus einer echten Quelle</b> hat – so geht nichts Erfundenes live.</div><div class="pws-acts">'+pwsBtn('Belege jetzt prüfen','pwsBelegCheck(this)','ti-shield-check',1)+'</div></div>';}
+    else{var col=b.unbelegt>0?'#e11d48':'#16a34a';var bodyH;
+      if(b.unbelegt>0){bodyH='<div style="font-size:12.5px;color:#b91c1c;margin:8px 0">⚠️ Diese Aussagen haben <b>kein belegbares Quell-Zitat</b> (potenzielle Halluzination). Bitte korrigieren – oder, wenn nachweislich korrekt, „Geprüft" setzen. <b>Veröffentlichen ist gesperrt, solange hier etwas offen ist.</b></div>'+b.offen.map(function(o,oi){return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;margin:5px 0;background:#fff"><span style="min-width:0;overflow:hidden"><b style="font-size:13px">'+esc(o.ref)+'</b> <span style="font-size:11px;color:var(--muted)">'+esc(o.tabelle)+'</span></span><button class="pws-act" style="flex:none" onclick="pwsBelegAck('+oi+')"><i class="ti ti-check"></i> Geprüft</button></div>';}).join('');}
+      else{bodyH='<div style="font-size:12.5px;color:#15803d;margin:8px 0">✓ Alle Fakten sind durch echte Quellen belegt – du kannst bedenkenlos veröffentlichen.</div>';}
+      bb='<div style="border:1px solid var(--line);border-left:4px solid '+col+';border-radius:12px;padding:14px 16px;margin:12px 0;background:var(--soft,#f8fafc)"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:14px">🛡️ Beleg-Prüfung</b><span style="font-size:12px;font-weight:700;color:#fff;background:'+col+';border-radius:999px;padding:2px 10px">'+(b.unbelegt>0?(b.unbelegt+' offen'):'alles belegt ✓')+'</span></div><div style="font-size:12.5px;color:var(--muted);margin:5px 0 0">'+b.belegt+' belegt · '+b.synthese+' Synthese'+(b.mensch?' · '+b.mensch+' manuell ok':'')+'</div>'+bodyH+'<div class="pws-acts" style="margin-top:10px">'+pwsBtn('Erneut prüfen','pwsBelegCheck(this)','ti-refresh')+'</div></div>';}
+    return pwsRow(st.offeneFrei===0,'Offene Freigaben: '+st.offeneFrei,'',pwsBtn('Freigaben öffnen','route(\'freigaben\')','ti-checkbox'))+bb+pwsRow(true,'Crawl-Status','',pwsBtn('Crawl-Status','route(\'crawl\')','ti-spider'));}
   if(k==='schluss'){const ss=pwsStages(P);const pflicht=['anlegen','sammeln','ordnen','belegen','pruefen'];const need=ss.filter(function(s){return pflicht.indexOf(s.key)>=0&&!s.done;});return ss.filter(function(s){return pflicht.indexOf(s.key)>=0;}).map(function(s){return pwsRow(s.done,esc(s.t));}).join('')+(need.length?'<div class="pws-hint">Noch offen: '+need.map(function(s){return esc(s.t);}).join(', ')+'</div>':'<div class="pws-hint ok">Alles vollständig – bereit zur Veröffentlichung!</div>');}
   if(k==='veroeffentlichen'){var liveOK=!!(P.artikel&&P.artikel.inhalts_status==='live');var hasArt=!!P.artikel;var acts='<div class="pws-acts">'+pwsBtn('Inhalt prüfen / bearbeiten','pwsTab(\'content\')','ti-file-text')+(!liveOK&&hasArt?pwsBtn('Jetzt veröffentlichen (live schalten)','pwsPublish()','ti-cloud-upload',1):'')+(liveOK?'<a class="pws-act primary" href="https://staging.schober.media" target="_blank" rel="noopener" style="text-decoration:none"><i class="ti ti-external-link"></i> Live-Seite öffnen</a>'+pwsBtn('Portal neu bauen','runBuild(\'de\')','ti-hammer'):'')+'</div>';return pwsRow(hasArt,'Content erzeugt')+pwsRow(liveOK,'Live veröffentlicht'+(!liveOK&&P.artikel&&P.artikel.inhalts_status?' – Status: '+esc(P.artikel.inhalts_status):''))+acts+(hasArt?'':'<div class="pws-hint">Noch kein Artikel erzeugt – der Content wird in der Pipeline generiert, dann hier prüfen & veröffentlichen.</div>');}
   return pwsRow(true,'Zuletzt geprüft: '+(f.letzte_pruefung_am?String(f.letzte_pruefung_am).slice(0,10):'—'))+'<div class="pws-hint">Dauerstufe: Aktualität wird laufend gesichert (Auto-Checks, AppSumo).</div>';
