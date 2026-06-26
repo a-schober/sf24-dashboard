@@ -1514,6 +1514,13 @@ async function pwsFirmendaten(btn){if(!PWS)return;const sid=PWS.id;if(btn){btn.d
     await pwsOpen(sid);
   }catch(e){alert('Firmendaten-Abruf fehlgeschlagen: '+(e&&e.message?e.message:e));if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-building-skyscraper"></i> Firmendaten aus Impressum holen';}}
 }
+async function pwsBewExtern(btn){if(!PWS)return;const sid=PWS.id;if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Suche G2/Capterra/Trustpilot …';}
+  try{const r=await sb.functions.invoke('bewertungen-extern',{body:{software_id:sid}});if(r.error)throw r.error;const d=r.data||{};if(d.error)throw new Error(d.detail||d.error);
+    const g=d.gefunden||{};const teile=[];if(g.g2!=null)teile.push('G2 '+g.g2);if(g.capterra!=null)teile.push('Capterra '+g.capterra);if(g.trustpilot!=null)teile.push('Trustpilot '+g.trustpilot);
+    toast(teile.length?('Bewertungen übernommen: '+teile.join(' · ')+' ✓'):'Keine externen Bewertungen gefunden');
+    await pwsOpen(sid);
+  }catch(e){alert('Bewertungs-Abruf fehlgeschlagen: '+(e&&e.message?e.message:e));if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-star"></i> Externe Bewertungen holen (G2/Capterra/Trustpilot)';}}
+}
 function pwsPanel(P,st){
   const f=P.full||{};const k=st.key;const tabs=st.tabs||[];
   let h='<div class="pws-p-head"><span class="pws-p-n">Stufe '+st.n+'</span><h2>'+esc(st.t)+infoH(st.info)+'</h2></div><div class="pws-kind"><span class="pk-b '+(st.kind||'todo')+'">'+(st.kind==='info'?'Info':'ToDo')+'</span><span>'+esc(st.todo||'')+'</span></div>';
@@ -1535,7 +1542,8 @@ function pwsPanel(P,st){
     body=pwsRow((P.quellen||[]).length>0,(P.quellen||[]).length+' Quellen')
       +pwsRow(P.synthese,'Bewertungs-Synthese vorhanden')
       +pwsRow(!!f.logo_pfad,'Logo gesetzt','',pwsBtn('Logos verwalten','route(\'logos\')','ti-photo'))
-      +pwsRow(!!f.appsumo_geprueft_am,'AppSumo geprüft');
+      +pwsRow(!!f.appsumo_geprueft_am,'AppSumo geprüft')
+      +'<div class="pws-acts">'+pwsBtn('Externe Bewertungen holen (G2/Capterra/Trustpilot)','pwsBewExtern(this)','ti-star',1)+'</div>';
   }else if(k==='pruefen'){
     body=pwsRow(st.offeneFrei===0,'Offene Freigaben: '+st.offeneFrei,'',pwsBtn('Freigaben öffnen','route(\'freigaben\')','ti-checkbox'))
       +pwsRow(true,'Crawl-Status / Validierung','',pwsBtn('Crawl-Status','route(\'crawl\')','ti-spider'));
