@@ -1202,7 +1202,7 @@ async function openDlg(i){DLGFORM="dForm";const neu=i<0;dlgRow=neu?{name:"",hers
   }
 }
 function setTab(t){dlgTab=t;document.querySelectorAll("#ov .dn").forEach(d=>d.classList.toggle("active",d.dataset.tab===t));renderTab();}
-function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent};var _ff=document.getElementById(DLGFORM);if(_ff){try{_ff.innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}catch(e){_ff.innerHTML='<div style="padding:18px;color:var(--muted)">Editor konnte nicht geladen werden.</div>';}}if(DLGFORM==='pwsForm'){try{pwsSyncRail();}catch(e){}}}
+function renderTab(){const r=dlgRow;if(!r)return;const s=ST[r.status],isSev=r.name==="sevDesk",land=r.markt==="DE"?"Deutschland":r.markt==="AT"?"Österreich":r.markt==="CH"?"Schweiz":"";const M={stammdaten:tabStamm,bilder:tabBilder,funktionen:tabFunk,preise:tabPreise,integrationen:tabInteg,faelle:tabFaelle,videos:tabVideos,bewertungen:tabBew,content:tabContent,distribution:tabDistribution};var _ff=document.getElementById(DLGFORM);if(_ff){try{_ff.innerHTML=(M[dlgTab]||tabStamm)(r,s,isSev,land);}catch(e){_ff.innerHTML='<div style="padding:18px;color:var(--muted)">Editor konnte nicht geladen werden.</div>';}}if(DLGFORM==='pwsForm'){try{pwsSyncRail();}catch(e){}}}
 function emptyTab(ic,t,d){return `<div class="empty-tab"><i class="ti ${ic}"></i><b>${t}</b><div class="d">${d||""}</div></div>`;}
 async function saveStamm(){
   const sid=(dlgRow&&dlgRow.id)||(dlgRow&&dlgRow._d&&dlgRow._d.full&&dlgRow._d.full.id);
@@ -1423,6 +1423,89 @@ function ceVideoModal(){ceSaveRange();aov("Video einfügen","YouTube",'<div styl
 function ceVideoInsert(){var inp=document.getElementById("ceVidUrl");var v=inp?inp.value.trim():"";var id=videoIdAusUrl(v)||(/^[A-Za-z0-9_-]{6,15}$/.test(v)?v:"");if(!id){toast("Keine gültige Video-ID");return;}closeAov();var fig='<figure class="ce-media" contenteditable="false" data-video="'+esc(id)+'"><div class="ce-vid"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" allowfullscreen loading="lazy"></iframe></div><button class="ce-del" contenteditable="false" onmousedown="event.preventDefault()" onclick="ceMediaDel(this)"><i class="ti ti-trash"></i> entfernen</button></figure><p><br></p>';ceInsertAtCursor(fig);}
 function contentVerwerfen(sid){if(confirm("Alle ungespeicherten Änderungen verwerfen?"))ladeContent(sid);}
 async function contentPublish(sid){var a=window._artikel;if(!a){toast("Kein Artikel geladen");return;}var secs=document.querySelectorAll("#ceDoc .ce-sec");var neu=[];secs.forEach(function(s,i){var h2=s.querySelector("h2");var body=s.querySelector(".ce-body");var alt=(window._ctAbs&&window._ctAbs[i])||{};neu.push({schluessel:s.dataset.schluessel||alt.schluessel||("abschnitt-"+(i+1)),ueberschrift:h2?h2.textContent.trim():(alt.ueberschrift||""),html:body?ceSerialize(body):""});});if(!a.sektionen)a.sektionen={};if(!a.sektionen.artikel)a.sektionen.artikel={};a.sektionen.artikel.abschnitte=neu;try{const _now=new Date().toISOString();await dbW('update','inhalts_artikel',a.id,{sektionen:a.sektionen,inhalts_status:'live',geaendert_am:_now});a.inhalts_status='live';try{await dbW('update','software',sid,{letzte_pruefung_am:_now});}catch(e){}try{if(typeof PWS!=='undefined'&&PWS&&PWS.artikel){PWS.artikel.inhalts_status='live';if(PWS.full)PWS.full.letzte_pruefung_am=_now;}if(typeof pwsSyncRail==='function')pwsSyncRail();}catch(e){}try{await ladeSW();}catch(e){}toast('Veröffentlicht ✓ – Artikel ist live');await ladeContent(sid);runBuild('de');}catch(e){alert('Veröffentlichen fehlgeschlagen: '+(e&&e.message?e.message:e));}}
+// ===== Distribution (Social-Content aus dem veröffentlichten Artikel) =====
+function tabDistribution(r,s,isSev,land){
+  const sid=r.id||(r._d&&r._d.full&&r._d.full.id)||(typeof PWS!=='undefined'&&PWS&&PWS.id)||'';
+  const nm=r.name||(r._d&&r._d.full&&r._d.full.name)||(typeof PWS!=='undefined'&&PWS&&PWS.full&&PWS.full.name)||'';
+  setTimeout(function(){ladeSocial(sid);},0);
+  return '<div class="tabhint"><i class="ti ti-share"></i> Social-/Distributions-Pakete aus dem <b>veröffentlichten Artikel</b> von <b>'+esc(nm)+'</b> – faktentreu, ohne neue Behauptungen (Opus 4.8, nur aus dem gegateten Content). Verfügbar ab 100 % Fortschritt.</div><div id="socialBox"><div style="padding:32px;color:var(--muted)">Lade …</div></div>';
+}
+async function ladeSocial(sid){
+  const box=document.getElementById('socialBox');if(!box)return;
+  if(!sid){box.innerHTML='<div class="empty-tab"><i class="ti ti-alert-triangle"></i><b>Keine Software-ID</b><div class="d">Bitte den Workflow neu öffnen.</div></div>';return;}
+  const swRow=(SW||[]).find(function(x){return String(x.id)===String(sid);});
+  const pct=swRow?(swRow.pct||0):0;
+  if(pct<100){
+    box.innerHTML='<div class="empty-tab"><i class="ti ti-lock"></i><b>Noch nicht verfügbar</b><div class="d">Distribution wird freigeschaltet, sobald der Fortschritt <b>100 %</b> erreicht – also alle Daten bereinigt vorliegen und der Artikel live ist.<br><br>Aktueller Fortschritt: <b>'+pct+' %</b>. Schließe den geführten Workflow bis inkl. „Veröffentlichen" ab.</div></div>';
+    return;
+  }
+  try{
+    const {data,error}=await sb.from('social_inhalte').select('*').eq('software_id',sid).eq('markt_id','de').maybeSingle();
+    if(error)throw error;
+    window._social=data||null;window._socialSid=sid;
+    if(!data||!data.bausteine||!data.bausteine.youtube){
+      box.innerHTML='<div class="bw-row" style="margin-bottom:12px"><button class="tb primary" id="socGenBtn" onclick="socialGenerate(\''+sid+'\')"><i class="ti ti-sparkles"></i> Paket generieren</button></div>'
+        +'<div class="pws-hint">Erzeugt <b>YouTube-Skript, 3 Shorts, LinkedIn-Post und Newsletter</b> – ausschließlich aus dem veröffentlichten Artikel (Opus 4.8, faktentreu, kein neuer Fakt). Dauert ~30–60 s. Danach editier- und kopierbar; Posten erfolgt manuell.</div>';
+      return;
+    }
+    socialRender(data);
+  }catch(e){box.innerHTML='<div class="empty-tab"><i class="ti ti-alert-triangle"></i><b>Fehler</b><div class="d">'+esc(e&&e.message?e.message:String(e))+'</div></div>';}
+}
+function socialTA(path,val,rows){return '<textarea class="bw-ta" data-sp="'+path+'" rows="'+(rows||4)+'" onblur="socialSave()" style="min-height:auto">'+esc(val||'')+'</textarea>';}
+function socialCard(titel,inner,copyPath){return '<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b>'+esc(titel)+'</b><button class="tb" style="margin-left:auto" onclick="socialCopy(\''+copyPath+'\')"><i class="ti ti-copy"></i> Kopieren</button></div>'+inner+'</div>';}
+function socialRender(d){
+  const box=document.getElementById('socialBox');if(!box)return;
+  const b=d.bausteine||{};const yt=b.youtube||{};const sh=b.shorts||[];const nl=b.newsletter||{};
+  const gen=d.generiert_am?('generiert am '+String(d.generiert_am).slice(0,16).replace('T',' ')+(d.generiert_modell?' · '+d.generiert_modell:'')):'';
+  const st=d.status==='freigegeben';
+  let h='<div class="bw-row" style="margin-bottom:12px;gap:8px;align-items:center;flex-wrap:wrap"><button class="tb primary" onclick="socialGenerate(\''+d.software_id+'\')"><i class="ti ti-refresh"></i> Neu generieren</button>'
+    +'<button class="tb'+(st?' primary':'')+'" onclick="socialFreigabe(\''+(st?'entwurf':'freigegeben')+'\')"><i class="ti ti-'+(st?'circle-check':'flag')+'"></i> '+(st?'Freigegeben ✓':'Freigeben')+'</button>'
+    +'<span style="margin-left:auto;font-size:11px;color:var(--muted)">'+esc(gen)+'</span></div>';
+  h+=socialCard('YouTube-Skript','<label style="font-size:11px;color:var(--muted)">Titel</label>'+socialTA('youtube.titel',yt.titel,2)+'<label style="font-size:11px;color:var(--muted);margin-top:6px;display:block">Skript</label>'+socialTA('youtube.skript',yt.skript,14),'youtube');
+  let shHtml='';for(let i=0;i<3;i++){const x=sh[i]||{};shHtml+='<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed var(--line)"><label style="font-size:11px;color:var(--muted)">Short '+(i+1)+' – Hook</label>'+socialTA('shorts.'+i+'.hook',x.hook,2)+'<label style="font-size:11px;color:var(--muted);margin-top:4px;display:block">Text</label>'+socialTA('shorts.'+i+'.text',x.text,4)+'</div>';}
+  h+=socialCard('Shorts / Reels (3)',shHtml,'shorts');
+  h+=socialCard('LinkedIn-Post',socialTA('linkedin',b.linkedin,8),'linkedin');
+  h+=socialCard('Newsletter','<label style="font-size:11px;color:var(--muted)">Betreff</label>'+socialTA('newsletter.betreff',nl.betreff,2)+'<label style="font-size:11px;color:var(--muted);margin-top:6px;display:block">Preheader</label>'+socialTA('newsletter.preheader',nl.preheader,2)+'<label style="font-size:11px;color:var(--muted);margin-top:6px;display:block">Body</label>'+socialTA('newsletter.body',nl.body,10),'newsletter');
+  box.innerHTML=h;
+}
+function socialCollect(){
+  const b={youtube:{},shorts:[{},{},{}],newsletter:{},linkedin:''};
+  document.querySelectorAll('#socialBox [data-sp]').forEach(function(el){
+    const p=el.dataset.sp;const v=el.value;
+    if(p==='linkedin'){b.linkedin=v;}
+    else if(p.indexOf('shorts.')===0){const m=p.split('.');b.shorts[+m[1]][m[2]]=v;}
+    else{const m=p.split('.');b[m[0]][m[1]]=v;}
+  });
+  return b;
+}
+async function socialSave(){
+  const d=window._social;if(!d||!d.id)return;
+  const b=socialCollect();d.bausteine=b;
+  try{await dbW('update','social_inhalte',d.id,{bausteine:b,geaendert_am:new Date().toISOString()});}catch(e){toast('Speichern fehlgeschlagen: '+(e&&e.message?e.message:e));}
+}
+async function socialFreigabe(status){
+  const d=window._social;if(!d||!d.id)return;
+  try{await dbW('update','social_inhalte',d.id,{status:status,geaendert_am:new Date().toISOString()});d.status=status;socialRender(d);toast(status==='freigegeben'?'Freigegeben ✓':'Zurück auf Entwurf');}catch(e){toast('Fehler: '+(e&&e.message?e.message:e));}
+}
+function socialCopy(which){
+  const b=socialCollect();let t='';
+  if(which==='youtube'){t=(b.youtube.titel||'')+'\n\n'+(b.youtube.skript||'');}
+  else if(which==='shorts'){t=b.shorts.map(function(x,i){return 'SHORT '+(i+1)+'\nHook: '+(x.hook||'')+'\n'+(x.text||'');}).join('\n\n');}
+  else if(which==='linkedin'){t=b.linkedin||'';}
+  else if(which==='newsletter'){t='Betreff: '+(b.newsletter.betreff||'')+'\nPreheader: '+(b.newsletter.preheader||'')+'\n\n'+(b.newsletter.body||'');}
+  try{navigator.clipboard.writeText(t);toast('In Zwischenablage kopiert');}catch(e){toast('Kopieren nicht möglich');}
+}
+async function socialGenerate(sid){
+  const box=document.getElementById('socialBox');
+  if(box)box.innerHTML='<div style="padding:32px;color:var(--muted)"><i class="ti ti-loader-2"></i> Paket wird generiert … (~30–60 s · Opus 4.8 · faktentreu aus dem Artikel)</div>';
+  try{
+    const r=await sb.functions.invoke('social-generieren',{body:{software_id:sid,markt_id:'de'}});
+    if(r&&r.error){let m=r.error.message||'Fehler';try{const bb=await r.error.context.json();if(bb&&bb.error)m=bb.detail?bb.error+' – '+bb.detail:bb.error;}catch(_){}throw new Error(m);}
+    const d=(r&&r.data)||{};if(d.error)throw new Error(d.detail?d.error+' – '+d.detail:d.error);
+    await ladeSocial(sid);
+    toast('Paket generiert ✓');
+  }catch(e){toast('Generierung fehlgeschlagen: '+(e&&e.message?e.message:e));try{await ladeSocial(sid);}catch(_){}}
+}
 function tabVideos(r){return ytTool(r);}
 function tabBilder(r,s,isSev){const sid=r.id||(r._d&&r._d.full&&r._d.full.id);setTimeout(function(){ladeBilder(sid);},0);return `<div class="tabhint"><i class="ti ti-photo"></i> Screenshots &amp; Produktbilder für <b>${esc(r.name||"")}</b>. Werden in Supabase Storage (Bucket „software-bilder“) abgelegt und im Astro-Portal eingebunden.</div>
   <div class="bw-row" style="margin-bottom:12px"><button class="tb primary" onclick="document.getElementById('biFile').click()"><i class="ti ti-upload"></i> Bilder hochladen</button><input type="file" id="biFile" accept="image/*" multiple style="display:none" onchange="bilderUpload('${sid}',this.files)"></div>
@@ -1613,7 +1696,7 @@ function pwsStages(P){
     {key:'pruefen',t:'Prüfen & freigeben',kind:'todo',todo:'Dein ToDo: offene Freigaben/Grenzfälle entscheiden.',info:'Was tun: Validieren und Grenzfälle entscheiden. Ziel: keine offenen Unklarheiten.',tabs:[]},
     {key:'schluss',t:'Schlusscheck',kind:'info',todo:'Nur Status – zeigt, ob alle Pflichtstufen erledigt sind.',info:'Was tun: Vollständigkeit prüfen. Ziel: 100 Prozent – bereit zur Veröffentlichung.',tabs:[]},
     {key:'veroeffentlichen',t:'Veröffentlichen',kind:'todo',todo:'Dein ToDo: Inhalt im Tab „Content" prüfen, dann „Jetzt veröffentlichen" – das schaltet den Artikel live und baut das Portal.',info:'Ablauf: 1) Content prüfen/bearbeiten · 2) „Jetzt veröffentlichen" (Status → live) · 3) Portal-Build läuft automatisch · 4) Seite ist live. Nur live-Artikel erscheinen im Portal.',tabs:['content']},
-    {key:'pflege',t:'Pflege',kind:'info',todo:'Nur Info – Aktualität wird laufend automatisch gesichert.',info:'Was tun: nichts – Auto-Checks halten die Daten frisch. Ziel: dauerhaft korrekte Daten.',tabs:[]}
+    {key:'pflege',t:'Pflege & Distribution',kind:'info',todo:'Nur Info – Aktualität wird laufend automatisch gesichert. Hier zusätzlich: Social-/Distributions-Content aus dem Live-Artikel erzeugen.',info:'Was tun: nichts Pflicht – Auto-Checks halten die Daten frisch. Optional: im Tab „Distribution" Social-Content generieren. Ziel: dauerhaft korrekte Daten + Reichweite.',tabs:['distribution']}
   ];
   const done={};
   done.anlegen=!!(f.name&&f.hersteller&&f.hersteller_url&&f.kategorie);
@@ -1639,7 +1722,7 @@ function pwsRow(ok,label,info,btn){return '<div class="pws-crit"><span class="pw
 function pwsBtn(label,onclick,icon,primary){return '<button class="pws-act'+(primary?' primary':'')+'" onclick="'+onclick+'"><i class="ti '+(icon||'ti-arrow-right')+'"></i> '+label+'</button>';}
 function pwsEditor(tab){if(!PWS)return;const i=VIEWS.software.rows.findIndex(function(r){return String(r.id)===String(PWS.id);});if(i<0){toast('Produkt nicht in der Liste – bitte „Alle Produkte" aktualisieren');return;}openDlg(i);if(tab)setTab(tab);}
 function pwsStageTabs(n){return n===1?['stammdaten']:n===3?['funktionen','preise','integrationen','faelle']:n===4?['bewertungen','bilder','videos']:n===7?['content']:[];}
-const PWS_TABLBL={stammdaten:'Stammdaten',funktionen:'Funktionen',preise:'Tarife',integrationen:'Integrationen',faelle:'Anwendungsfälle',bewertungen:'Bewertungen',bilder:'Bilder',videos:'Videos',content:'Content'};
+const PWS_TABLBL={stammdaten:'Stammdaten',funktionen:'Funktionen',preise:'Tarife',integrationen:'Integrationen',faelle:'Anwendungsfälle',bewertungen:'Bewertungen',bilder:'Bilder',videos:'Videos',content:'Content',distribution:'Distribution'};
 function pwsTab(tab){dlgTab=tab;DLGFORM='pwsForm';renderTab();document.querySelectorAll('.pws-subtab').forEach(function(b){b.classList.toggle('on',b.dataset.t===tab);});}
 async function pwsPublish(){if(!PWS||!PWS.artikel||!PWS.artikel.id){toast('Kein Artikel vorhanden – erst Content erzeugen.');return;}
   toast('Anti-Halluzinations-Check läuft … (Belege gegen Quellen, ~1 Min)');
