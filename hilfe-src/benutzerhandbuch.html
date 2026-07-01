@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>softwio Cockpit · Benutzerhandbuch</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 17mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; color:#222b38; font-size:10.6pt; line-height:1.55; margin:0; counter-reset: fig; }
+  h1,h2,h3,h4 { line-height:1.25; margin:0; }
+  p { margin:0 0 8px; }
+  b,strong { color:#12305a; }
+  ul,ol { margin:0 0 9px; padding-left:20px; }
+  li { margin-bottom:4px; }
+  .muted { color:#6b7a8d; }
+
+  /* ---------- Deckblatt ---------- */
+  .cover { height:calc(297mm - 33mm); display:flex; flex-direction:column; justify-content:center; break-after:page; }
+  .cover .logo { font-size:52pt; font-weight:900; letter-spacing:-.04em; color:#12305a; display:flex; align-items:baseline; margin-bottom:2px; }
+  .cover .logo .o { position:relative; display:inline-block; width:.92em; height:.92em; }
+  .cover .logo .o svg { position:absolute; inset:0; width:100%; height:100%; }
+  .cover .claim { font-size:15pt; color:#5b7089; }
+  .cover .title { margin-top:40px; font-size:32pt; font-weight:800; color:#16202e; letter-spacing:-.02em; }
+  .cover .sub { font-size:14pt; color:#4a5666; margin-top:8px; }
+  .cover .rule { height:4px; width:90px; background:#2f80ff; border-radius:3px; margin:22px 0; }
+  .cover .meta { font-size:10pt; color:#8595a8; margin-top:auto; }
+  .cover .meta b { color:#3a4658; }
+
+  /* ---------- Inhaltsverzeichnis ---------- */
+  .toc { break-after:page; }
+  .toc h2 { font-size:20pt; color:#12305a; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid #2f80ff; }
+  .toc ol { list-style:none; padding:0; margin:0; counter-reset:toc; }
+  .toc li { counter-increment:toc; display:flex; align-items:baseline; gap:10px; padding:5px 0; border-bottom:1px dotted #dbe1e9; font-size:11pt; }
+  .toc li::before { content: counter(toc); font-weight:800; color:#2f80ff; min-width:22px; }
+  .toc .tt { font-weight:600; color:#25405f; }
+  .toc .td { color:#8595a8; font-size:9.3pt; }
+  .toc li.sub { font-size:9.6pt; padding-left:34px; border-bottom:none; color:#6b7a8d; }
+  .toc li.sub::before { content:""; min-width:0; }
+
+  /* ---------- Kapitel ---------- */
+  h2.ch { break-before:page; counter-increment:chap; font-size:19pt; color:#12305a; margin:0 0 4px; padding-top:2px; }
+  h2.ch::before { content:"Kapitel " counter(chap); display:block; font-size:9.5pt; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#2f80ff; margin-bottom:3px; }
+  body { counter-reset: chap fig; }
+  .ch-line { height:3px; background:linear-gradient(90deg,#2f80ff,#9cc2ff); border-radius:2px; margin:9px 0 16px; }
+  h3 { font-size:13.5pt; color:#1c3a63; margin:20px 0 7px; }
+  h4 { font-size:11.4pt; color:#25405f; margin:14px 0 5px; }
+
+  /* ---------- Callouts ---------- */
+  .box { border-radius:10px; padding:11px 15px; margin:12px 0; break-inside:avoid; font-size:10pt; }
+  .box .bt { font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:7px; }
+  .principle { border:1px solid #cfe0ff; background:#f3f8ff; color:#23364d; } .principle .bt { color:#1c4e8a; }
+  .ki { border:1px solid #d6ccff; background:#f7f4ff; color:#2c2350; } .ki .bt { color:#5b3fd6; } .ki i.fn { color:#5b3fd6; font-style:italic; }
+  .max { border:1px solid #bfe6cd; background:#eef7f0; color:#1c5a3a; } .max .bt { color:#145130; }
+  .rules { border:1px solid #ffe0b8; background:#fff8ef; color:#5a4a2a; } .rules .bt { color:#9a5b00; }
+  .gate { border:1px solid #ffc9c9; background:#fff5f5; color:#5a2a2a; } .gate .bt { color:#c1121f; }
+  .tip { border:1px solid #cfe8d8; background:#f1faf4; color:#1c5a3a; } .tip .bt { color:#12492e; }
+  .note { border:1px solid #e2e7ee; background:#f8fafc; color:#3a4658; } .note .bt { color:#3a4658; }
+  .box b { color:inherit; }
+  .box.principle b,.box.tip b { color:#12305a; }
+
+  /* ---------- Steps ---------- */
+  .steps { counter-reset:st; margin:10px 0; }
+  .stp { display:flex; gap:12px; margin-bottom:11px; break-inside:avoid; }
+  .stp .n { counter-increment:st; flex:none; width:26px; height:26px; border-radius:50%; background:#2f80ff; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:11pt; }
+  .stp .n::before { content:counter(st); }
+  .stp .c { flex:1; min-width:0; }
+  .stp .h { font-weight:800; color:#16202e; font-size:11pt; margin-bottom:1px; }
+
+  /* ---------- Figuren ---------- */
+  .fig { break-inside:avoid; margin:14px 0 6px; border:1px solid #dfe4ea; border-radius:11px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(20,40,80,.05); }
+  .fig-win { background:#f0f3f7; border-bottom:1px solid #e2e7ee; padding:6px 11px; font-size:8.6pt; color:#647689; display:flex; align-items:center; gap:7px; }
+  .fig-win .dots { display:flex; gap:4px; }
+  .fig-win .dots s { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .fig-body { padding:15px 17px; }
+  .cap { counter-increment:fig; font-size:8.8pt; color:#8595a8; margin:0 2px 16px; font-style:italic; }
+  .cap::before { content:"Abbildung " counter(fig) ": "; font-weight:700; font-style:normal; color:#5b3fd6; }
+
+  /* Mock-Bausteine für Figuren */
+  .mrail { display:flex; flex-direction:column; gap:0; }
+  .mrail .r { display:flex; align-items:center; gap:9px; padding:6px 8px; font-size:9.2pt; border-radius:7px; }
+  .mrail .r .b { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:9pt; flex:none; border:2px solid #cdd6e0; color:#8595a8; background:#fff; }
+  .mrail .r.done .b { background:#27a567; border-color:#27a567; color:#fff; }
+  .mrail .r.cur .b { background:#2f80ff; border-color:#2f80ff; color:#fff; }
+  .mrail .r.cur { background:#eef5ff; font-weight:700; color:#1c4e8a; }
+  .mrail .r.done { color:#2b3a4d; }
+  .mrail .r .tag { margin-left:auto; font-size:7.6pt; font-weight:800; text-transform:uppercase; letter-spacing:.03em; padding:1px 6px; border-radius:4px; }
+  .mrail .r.done .tag { background:#e6f7ee; color:#1c7a4d; }
+  .mrail .r.cur .tag { background:#2f80ff; color:#fff; }
+
+  .mnav { font-size:9.3pt; }
+  .mnav .g { font-size:7.6pt; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#9aa7b6; margin:9px 0 3px; }
+  .mnav .i { display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:6px; color:#33465e; }
+  .mnav .i.act { background:#eef5ff; color:#1c4e8a; font-weight:700; }
+  .mnav .i .ic { width:15px; height:15px; border-radius:4px; background:#d7e3f5; flex:none; }
+  .mnav .i.act .ic { background:#2f80ff; }
+  .mnav .i .cnt { margin-left:auto; font-size:8.4pt; color:#94a2b2; background:#eef1f5; border-radius:9px; padding:0 7px; }
+  .mnav .i .bdg { margin-left:auto; font-size:8.2pt; color:#fff; background:#e5484d; border-radius:9px; padding:0 7px; font-weight:700; }
+
+  .mcard { border:1px solid #e2e7ee; border-radius:9px; padding:10px 12px; font-size:9.2pt; }
+  .mcard + .mcard { margin-top:8px; }
+  .chip { display:inline-flex; align-items:center; gap:4px; border:1px solid #d5deea; border-radius:20px; padding:2px 9px; font-size:8.6pt; margin:2px 4px 2px 0; background:#fff; }
+  .chip .sc { font-weight:800; color:#2f80ff; }
+  .kirec { border:1px solid #d6ccff; background:#f7f4ff; border-radius:8px; padding:7px 10px; font-size:8.8pt; margin-top:6px; }
+  .kirec .kh { color:#5b3fd6; font-weight:800; display:flex; align-items:center; gap:5px; }
+  .kk { font-size:7.8pt; font-weight:800; color:#fff; background:#5b3fd6; border-radius:5px; padding:0 6px; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .role { border:1px solid #e2e7ee; border-radius:8px; padding:8px 11px; font-size:9pt; background:#fbfcfe; }
+  .role b { display:block; color:#16202e; margin-bottom:1px; }
+
+  .flow { display:flex; align-items:stretch; gap:0; }
+  .flow .fn { flex:1; text-align:center; padding:9px 6px; font-size:8.8pt; position:relative; }
+  .flow .fn .fi { width:30px; height:30px; border-radius:8px; background:#eef5ff; color:#2f80ff; display:flex; align-items:center; justify-content:center; margin:0 auto 5px; font-weight:800; }
+  .flow .fn::after { content:"›"; position:absolute; right:-4px; top:16px; color:#c0ccdb; font-size:15pt; }
+  .flow .fn:last-child::after { content:""; }
+
+  .status-flow { display:flex; gap:7px; align-items:center; font-size:9pt; flex-wrap:wrap; }
+  .pill { border-radius:20px; padding:3px 11px; font-size:8.8pt; font-weight:700; }
+  .pill.o { background:#fff3e0; color:#b5721a; border:1px solid #f3d9b0; }
+  .pill.w { background:#eef2ff; color:#4f46e5; border:1px solid #d3daf7; }
+  .pill.d { background:#e6f7ee; color:#1c7a4d; border:1px solid #b7e6cd; }
+  .arrow { color:#c0ccdb; font-weight:800; }
+
+  table.t { width:100%; border-collapse:collapse; font-size:9.2pt; margin:10px 0; }
+  table.t th { background:#12305a; color:#fff; text-align:left; padding:7px 9px; font-size:8.8pt; }
+  table.t td { border:1px solid #e2e7ee; padding:6px 9px; vertical-align:top; }
+  table.t tr:nth-child(even) td { background:#f7fafd; }
+  table.t td i.fn { color:#5b3fd6; font-style:italic; }
+
+  .synbar { height:9px; border-radius:5px; background:#eef2f7; overflow:hidden; }
+  .synbar span { display:block; height:100%; }
+
+  .foot-note { font-size:8.4pt; color:#9aa7b6; border-top:1px solid #e6ebf1; padding-top:8px; margin-top:16px; }
+</style>
+</head>
+<body>
+
+<!-- ================= DECKBLATT ================= -->
+<div class="cover">
+  <div class="logo">softwi<span class="o"><svg viewBox="0 0 32 32"><circle cx="16" cy="17" r="12.6" fill="none" stroke="#12305a" stroke-width="3.4"/><path d="M7.7 17 L14 23.6 L26.2 5.6" fill="none" stroke="#2f80ff" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+  <div class="claim">Software, die passt.</div>
+  <div class="rule"></div>
+  <div class="title">Benutzerhandbuch</div>
+  <div class="sub">Das softwio Cockpit – von der neuen Software bis zum veröffentlichten, verbreiteten Content. Vollständig, Schritt für Schritt und anfängerfreundlich erklärt.</div>
+  <div class="meta">
+    <b>softwio Cockpit</b> · Redaktions- &amp; Content-Dashboard<br>
+    Ausgabe Juli 2026 · gilt für den geführten 9-Stufen-Produkt-Workflow
+  </div>
+</div>
+
+<!-- ================= INHALTSVERZEICHNIS ================= -->
+<div class="toc">
+  <h2>Inhalt</h2>
+  <ol>
+    <li><span class="tt">Einführung &amp; Grundprinzipien</span></li>
+    <li class="sub">Was das Cockpit ist · 100 % faktenbasiert · der 9-Stufen-Workflow · KI &amp; der Claude-Max-Weg</li>
+    <li><span class="tt">Die Oberfläche kennenlernen</span></li>
+    <li class="sub">Menüleiste · Navigation mit Zählern · der Produkt-Arbeitsbereich · Hilfe-Menü</li>
+    <li><span class="tt">Stufe 1 – Produkt anlegen</span></li>
+    <li><span class="tt">Stufe 2 – Bilder &amp; Videos</span></li>
+    <li><span class="tt">Stufe 3 – Daten sammeln (Crawl)</span></li>
+    <li><span class="tt">Stufe 4 – Ordnen &amp; ergänzen (Feature-Wörterbuch)</span></li>
+    <li><span class="tt">Stufe 5 – Belegen (Bewertungen, Quellen, Logo)</span></li>
+    <li><span class="tt">Stufe 6 – Prüfen &amp; freigeben</span></li>
+    <li><span class="tt">Stufe 7 – Schlusscheck</span></li>
+    <li><span class="tt">Stufe 8 – Veröffentlichen &amp; Portal-Build</span></li>
+    <li><span class="tt">Stufe 9 – Pflege &amp; Distribution</span></li>
+    <li><span class="tt">KI-Funktionen &amp; der günstige Claude-Max-Weg</span></li>
+    <li><span class="tt">Regeln, Gates &amp; Glossar</span></li>
+  </ol>
+  <div class="foot-note">Jedes Kapitel beginnt auf einer neuen Seite. Abbildungen zeigen den Aufbau der Oberfläche schematisch – Farben, Anordnung und Beschriftungen entsprechen dem echten Cockpit.</div>
+</div>
+
+<!-- ================= KAPITEL 1 ================= -->
+<h2 class="ch">Einführung &amp; Grundprinzipien</h2>
+<div class="ch-line"></div>
+
+<p>Willkommen im <b>softwio Cockpit</b>. Das Cockpit ist deine Redaktionszentrale: Hier verwandelst du eine Software Schritt für Schritt in eine fertige, veröffentlichte Vergleichs- und Ratgeberseite auf dem softwio-Portal – und verbreitest sie anschließend über Social Media und Newsletter. Dieses Handbuch führt dich durch <b>jeden einzelnen Schritt</b>, von der ersten Anlage bis zum letzten Klick. Es setzt kein Vorwissen voraus.</p>
+
+<h3>Für wen ist dieses Handbuch?</h3>
+<p>Für alle, die Inhalte im Cockpit pflegen – auch ohne technische Vorkenntnisse. Jeder Fachbegriff wird erklärt (siehe auch das Glossar in Kapitel 13). Du musst dir nichts merken: Das Cockpit <b>führt dich</b> und zeigt dir jederzeit, was als Nächstes zu tun ist.</p>
+
+<h3>Das oberste Prinzip: 100 % faktenbasiert</h3>
+<div class="box principle"><div class="bt">★ Nichts wird erfunden</div>
+Alle Inhalte stammen ausschließlich aus <b>belegten Quellen</b> – der Website des Herstellers, ausgewerteten Videos und echten Nutzerbewertungen. Diese gesicherte Datenbasis heißt <b>SSoT</b> (englisch <i>Single Source of Truth</i>, „einzige Quelle der Wahrheit"). Im Zweifel bleibt ein Feld lieber leer, als dass etwas geraten wird. Mehrere <b>Schutzmechanismen</b> (Gates) sorgen dafür, dass nichts Ungeprüftes veröffentlicht wird.</div>
+
+<h3>Der Weg im Überblick: 9 Stufen</h3>
+<p>Jede Software durchläuft denselben, immer gleichen Weg aus <b>9 Stufen</b>. Du arbeitest sie der Reihe nach ab. Der Fortschrittsbalken oben zeigt dir, wie weit du bist; erst bei <b>100 %</b> kann veröffentlicht werden.</p>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Produkt-Arbeitsbereich · Stufenleiste</div>
+  <div class="fig-body">
+    <div class="mrail">
+      <div class="r done"><span class="b">✓</span> 1 · Anlegen <span class="tag">erledigt</span></div>
+      <div class="r done"><span class="b">✓</span> 2 · Bilder &amp; Videos <span class="tag">erledigt</span></div>
+      <div class="r done"><span class="b">✓</span> 3 · Daten sammeln <span class="tag">erledigt</span></div>
+      <div class="r cur"><span class="b">4</span> 4 · Ordnen &amp; ergänzen <span class="tag">aktuell</span></div>
+      <div class="r"><span class="b">5</span> 5 · Belegen</div>
+      <div class="r"><span class="b">6</span> 6 · Prüfen &amp; freigeben</div>
+      <div class="r"><span class="b">7</span> 7 · Schlusscheck</div>
+      <div class="r"><span class="b">8</span> 8 · Veröffentlichen</div>
+      <div class="r"><span class="b">9</span> 9 · Pflege &amp; Distribution</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die 9 Stufen als Stufenleiste. Erledigte Stufen sind grün, die aktuelle blau. Ein Klick auf eine Stufe öffnet sie.</div>
+
+<p>Die Stufen im Kurzüberblick (ausführlich je ein eigenes Kapitel):</p>
+<ol>
+  <li><b>Anlegen</b> – Name, Hersteller, URL und Kategorie erfassen.</li>
+  <li><b>Bilder &amp; Videos</b> – Logo, Screenshots und passende Videos.</li>
+  <li><b>Daten sammeln</b> – die Website automatisch auslesen (Crawl).</li>
+  <li><b>Ordnen &amp; ergänzen</b> – Funktionen zuordnen, Tarife pflegen.</li>
+  <li><b>Belegen</b> – Bewertungen, Quellen und Logo als Nachweise.</li>
+  <li><b>Prüfen &amp; freigeben</b> – Grenzfälle entscheiden.</li>
+  <li><b>Schlusscheck</b> – Vollständigkeit prüfen (100 %).</li>
+  <li><b>Veröffentlichen</b> – Artikel live schalten, Portal bauen.</li>
+  <li><b>Pflege &amp; Distribution</b> – aktuell halten, Reichweite schaffen.</li>
+</ol>
+
+<h3>KI-Unterstützung und der günstige „Claude-Max-Weg"</h3>
+<p>An vielen Stellen hilft dir eine <b>KI</b> (künstliche Intelligenz) – sie liest Websites aus, schlägt Zuordnungen vor, wertet Bewertungen aus und erzeugt Texte. Diese KI-Funktionen laufen über eine kostenpflichtige Schnittstelle (API).</p>
+<div class="box max"><div class="bt">💶 Der günstige Weg über Claude Max</div>
+Für viele KI-Schritte gibt es eine <b>kostenfreie Alternative</b>: Statt der API erledigt <b>Claude im Max-Plan</b> die Aufgabe in einer Claude-Code-Sitzung. Wo es dafür einen Knopf gibt (z. B. „Über Claude Max"), ist er in diesem Handbuch genannt. Dieses Prinzip nennen wir den <b>i-Weg</b> (nach dem kleinen „i"-Symbol, das den fertigen Befehl kopiert). Kapitel 12 fasst alle KI-Funktionen und ihre günstigen Wege zusammen.</div>
+
+<h3>So nutzt du dieses Handbuch</h3>
+<p>Du kannst es von vorne nach hinten lesen (es folgt exakt dem Arbeitsablauf) oder gezielt ein Kapitel aufschlagen. Farbige Kästen haben feste Bedeutungen: <b style="color:#1c4e8a">Blau</b> = Grundprinzip, <b style="color:#5b3fd6">Lila</b> = KI-Funktion, <b style="color:#145130">Grün</b> = günstiger Weg/Tipp, <b style="color:#9a5b00">Orange</b> = Pflichten, <b style="color:#c1121f">Rot</b> = Schutz-Gate/Blockade.</p>
+
+<!-- ================= KAPITEL 2 ================= -->
+<h2 class="ch">Die Oberfläche kennenlernen</h2>
+<div class="ch-line"></div>
+
+<p>Bevor wir loslegen, ein Rundgang durch den Bildschirm. Das Cockpit hat drei Bereiche: die <b>Menüleiste</b> ganz oben, die <b>Navigation</b> links und den <b>Arbeitsbereich</b> in der Mitte.</p>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> softwio Cockpit · Gesamtaufbau</div>
+  <div class="fig-body">
+    <div style="border:1px solid #e2e7ee;border-radius:7px;overflow:hidden">
+      <div style="background:#3a404a;color:#fff;padding:7px 12px;font-size:9pt;display:flex;align-items:center;gap:14px">
+        <b style="color:#fff">softwio</b><span style="color:#c3cdda">Datei · Pipeline · Portal · Ansicht · Extras · Hilfe</span><span style="margin-left:auto;color:#c3cdda">Markt: DE · Admin</span>
+      </div>
+      <div style="display:flex;min-height:150px">
+        <div style="width:34%;background:#f7fafc;border-right:1px solid #e2e7ee;padding:9px">
+          <div style="font-size:7.6pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9aa7b6;margin-bottom:4px">Arbeitsbereich</div>
+          <div style="font-size:8.8pt;color:#33465e;padding:2px 0">▪ Produkte</div>
+          <div style="font-size:8.8pt;color:#33465e;padding:2px 0">▪ Freigaben</div>
+          <div style="font-size:8.8pt;color:#33465e;padding:2px 0">▪ Feature-Inbox</div>
+          <div style="font-size:7.6pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9aa7b6;margin:8px 0 4px">Navigation</div>
+          <div style="font-size:8.2pt;color:#8595a8">… weitere Bereiche</div>
+        </div>
+        <div style="flex:1;padding:12px;background:#fff">
+          <div style="font-size:9pt;font-weight:700;color:#16202e;margin-bottom:6px">Arbeitsbereich</div>
+          <div style="height:8px;background:#eef2f7;border-radius:4px;margin-bottom:5px"></div>
+          <div style="height:8px;background:#eef2f7;border-radius:4px;width:80%;margin-bottom:5px"></div>
+          <div style="height:8px;background:#eef2f7;border-radius:4px;width:60%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Der Gesamtaufbau: dunkle Menüleiste oben, Navigation links (in Gruppen), großer Arbeitsbereich in der Mitte.</div>
+
+<h3>Die Menüleiste oben</h3>
+<p>Die dunkle Leiste enthält Klapp-Menüs: <b>Datei</b> (Export/Sicherung), <b>Pipeline</b>, <b>Portal</b> (Portal bauen, Live öffnen), <b>Ansicht</b> (Hell/Dunkel, Dichte, Spalten), <b>Extras</b> und <b>Hilfe</b>. Im <b>Hilfe</b>-Menü findest du alle Kurzanleitungen als PDF und dieses Handbuch. Rechts kannst du zwischen <b>Hell/Dunkel</b> umschalten.</p>
+
+<h3>Die Navigation links – mit Zählern</h3>
+<p>Die linke Navigation ist in vier Gruppen geteilt. Hinter vielen Punkten steht eine <b>Zahl</b>: Sie zeigt, wie viele Einträge enthalten sind (z. B. Produkte = 4). Zwei Punkte haben eine <b>rote Zahl</b>, wenn dort etwas auf dich wartet: <b>Freigaben</b> und <b>Feature-Inbox</b>.</p>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Navigation (linke Seite)</div>
+  <div class="fig-body">
+    <div class="mnav">
+      <div class="g">Arbeitsbereich</div>
+      <div class="i act"><span class="ic"></span> Produkte <span class="cnt">4</span></div>
+      <div class="i"><span class="ic"></span> Freigaben <span class="bdg">3</span></div>
+      <div class="i"><span class="ic"></span> Feature-Inbox <span class="bdg">6</span></div>
+      <div class="g">Inhalte &amp; Portal</div>
+      <div class="i"><span class="ic"></span> Vergleichs-Artikel <span class="cnt">0</span></div>
+      <div class="i"><span class="ic"></span> Portal bauen</div>
+      <div class="i"><span class="ic"></span> Infoseiten <span class="cnt">4</span></div>
+      <div class="i"><span class="ic"></span> Redirects <span class="cnt">0</span></div>
+      <div class="g">Stammdaten &amp; Werkzeuge</div>
+      <div class="i"><span class="ic"></span> Kategorien <span class="cnt">2</span></div>
+      <div class="i"><span class="ic"></span> Feature-Wörterbuch <span class="cnt">64</span></div>
+      <div class="i"><span class="ic"></span> Crawl-Monitor</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die Navigation mit Gruppen und Zählern. Graue Zahlen = enthaltene Einträge, rote Zahlen = offene Aufgaben (Freigaben, Feature-Inbox).</div>
+
+<h3>Der Produkt-Arbeitsbereich</h3>
+<p>Das Herzstück. Ein <b>Klick auf eine Produktzeile</b> unter „Produkte" öffnet den geführten Arbeitsbereich für dieses Produkt. Er besteht aus drei Teilen:</p>
+<ul>
+  <li><b>Kopf</b> – Logo, Produktname und der <b>Fortschrittsbalken</b> (z. B. „63 %").</li>
+  <li><b>Stufenleiste links</b> – die 9 Stufen (siehe Abbildung 1). Sie zeigt, was erledigt, aktuell oder noch offen ist.</li>
+  <li><b>Panel rechts</b> – hier arbeitest du an der gewählten Stufe: mit einer <b>Checkliste</b> (was fehlt noch?), den Eingabefeldern und einem <b>„Weiter"-Button</b>.</li>
+</ul>
+<div class="box tip"><div class="bt">ⓘ Das Info-Symbol</div>An vielen Stellen findest du ein kleines <b>ⓘ</b>. Fahre mit der Maus darüber, um eine Kurzerklärung zu sehen – so musst du nichts nachschlagen.</div>
+
+<div class="box note"><div class="bt">Aktualisieren &amp; Speichern</div>Deine Eingaben werden meist <b>automatisch gespeichert</b>, sobald du ein Feld verlässt. Der Fortschritt und die Checklisten aktualisieren sich dabei sofort. Ein „Aktualisieren"-Knopf im Kopf lädt den Status bei Bedarf neu.</div>
+
+<!-- ================= KAPITEL 3 ================= -->
+<h2 class="ch">Stufe 1 – Produkt anlegen</h2>
+<div class="ch-line"></div>
+
+<p>Jede Reise beginnt mit dem Anlegen des Produkts. Hier gibst du die Basisdaten ein, auf denen alles Weitere aufbaut.</p>
+
+<h3>Die zwei Wege zum neuen Produkt</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Einzeln anlegen</div>Du kennst die Software bereits. Fülle die vier Pflichtfelder aus und klicke „Anlegen".</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Aus Kategorie entdecken</div>Du suchst neue Tools einer Kategorie. Die Funktion schlägt bekannte, <b>monetarisierbare</b> Programme vor (mit Affiliate-Programm), sortiert nach Potenzial – und blendet bereits vorhandene aus.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Neue Software anlegen</div>
+  <div class="fig-body">
+    <div style="max-width:340px">
+      <label style="font-size:8.4pt;color:#8595a8">Name *</label>
+      <div style="border:1px solid #cdd6e0;border-radius:6px;padding:6px 9px;font-size:9pt;margin:2px 0 8px">sevDesk</div>
+      <label style="font-size:8.4pt;color:#8595a8">Hersteller *</label>
+      <div style="border:1px solid #cdd6e0;border-radius:6px;padding:6px 9px;font-size:9pt;margin:2px 0 8px">sevDesk GmbH</div>
+      <label style="font-size:8.4pt;color:#8595a8">Hersteller-URL *</label>
+      <div style="border:1px solid #cdd6e0;border-radius:6px;padding:6px 9px;font-size:9pt;margin:2px 0 8px">https://sevdesk.de</div>
+      <label style="font-size:8.4pt;color:#8595a8">Kategorie *</label>
+      <div style="border:1px solid #cdd6e0;border-radius:6px;padding:6px 9px;font-size:9pt;margin:2px 0 10px">Buchhaltung</div>
+      <div style="display:inline-block;background:#2f80ff;color:#fff;font-weight:700;font-size:9pt;border-radius:7px;padding:7px 16px">+ Anlegen</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Das Anlege-Formular. Alle mit * markierten Felder sind Pflicht – ohne sie lässt sich nicht speichern.</div>
+
+<h3>Die vier Pflichtfelder</h3>
+<p><b>Name</b>, <b>Hersteller</b>, <b>Hersteller-URL</b> und <b>Kategorie</b>. Fehlt eines, meldet das Cockpit beim Speichern „Pflichtfeld fehlt".</p>
+<div class="box rules"><div class="bt">⚠ Wichtig: die Hersteller-URL</div>Sie muss korrekt sein – auf ihr basieren später der <b>Crawl</b> (Stufe 3) und die automatische Firmendaten-Recherche. Ein Tippfehler hier zieht sich sonst durch alle Folgeschritte.</div>
+
+<h3>KI-Hilfe: Firmendaten aus dem Impressum</h3>
+<div class="box ki"><div class="bt">✨ Firmendaten automatisch holen</div>
+Der Button <b>„Firmendaten aus Impressum holen"</b> (KI-Funktion <i class="fn">firmendaten-extrahieren</i>) liest Impressum und Datenschutzseite aus und füllt – nur wo belegt – Felder wie <b>Land, Sitz, Gründungsjahr, Mitarbeiterzahl, Serverstandort und DSGVO-Angaben</b>. Nichts wird geraten.</div>
+
+<div class="box principle"><div class="bt">✓ Erledigt, wenn</div>Name, Hersteller, Hersteller-URL und Kategorie gesetzt und gespeichert sind. Danach springst du direkt in den Arbeitsbereich und die Stufenleiste zeigt Stufe 1 als grün.</div>
+
+<!-- ================= KAPITEL 4 ================= -->
+<h2 class="ch">Stufe 2 – Bilder &amp; Videos</h2>
+<div class="ch-line"></div>
+
+<p>Bilder und Videos machen die spätere Produktseite <b>anschaulich und vertrauenswürdig</b>. Diese Stufe ist <b>empfohlen, aber nicht blockierend</b> – mit einer Ausnahme: das <b>Logo</b> wird in Stufe 5 zur Pflicht.</p>
+
+<h3>Teil A · Bilder</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Hochladen</div>Dateien per <b>Drag &amp; Drop</b> hineinziehen oder ins Feld klicken. Neue Bilder landen zunächst als „Content-Bild".</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Rolle wählen</div>Die Rolle bestimmt, wo das Bild erscheint (siehe Abbildung).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Beschreibung eintragen</div>Kurz beschreiben, was das Bild zeigt – das ist der <b>Alt-Text</b> (wichtig für Suchmaschinen und Barrierefreiheit).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Bei Content-Bildern: Platzierung</div>Über den <b>Abschnitt-Hinweis</b> steuerst du, in welchem Textabschnitt es erscheint; mit <b>„Pflicht"</b> erzwingst du die Platzierung im Artikel.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Bild-Rollen</div>
+  <div class="fig-body">
+    <div class="grid2">
+      <div class="role"><b>Content-Bild</b>Wird von der KI thematisch passend <b>in den Artikeltext</b> gesetzt.</div>
+      <div class="role"><b>Galeriebild</b>Erscheint im <b>Screenshot-Galerie-Block</b> (Reihenfolge per ↑↓).</div>
+      <div class="role"><b>Hauptbild</b>Das <b>große Hero-Bild</b> oben in der Einleitung.</div>
+      <div class="role"><b>Logo</b>Das <b>Hersteller-Logo</b> – erscheint nie im Text (in Stufe 5 Pflicht).</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die vier Bild-Rollen und wo das jeweilige Bild auf der Seite auftaucht.</div>
+
+<div class="box ki"><div class="bt">✨ KI: Beschreibung automatisch (das ✨-Symbol)</div>
+Neben dem Beschreibungsfeld sitzt ein <b>✨</b>. Es lässt die KI (<i class="fn">bild-beschreiben</i>) das Bild ansehen und eine Beschreibung vorschlagen – bei Content-Bildern zusätzlich den passenden Abschnitt. Beim Hochladen geschieht das für neue Bilder automatisch.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg</div>Die Beschreibung kannst du auch einfach <b>selbst eintippen</b> – dann fällt gar keine KI-Nutzung an.</div></div>
+
+<h3>Teil B · Videos</h3>
+<p>Ein YouTube-Video wird nicht nur verlinkt, sondern <b>komplett angeschaut und ausgewertet</b>. Die dabei gefundenen Fakten kommen als Erkenntnisse in die <b>Freigaben</b> (Kapitel 8) – erst nach deiner Bestätigung landen sie in der Datenbasis.</p>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Video hinzufügen</div>Entweder im <b>YouTube-Tab</b> suchen und markieren, oder in der <b>Warteschlange</b> direkt eine YouTube-URL/Video-ID einfügen.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Auswerten lassen</div>Der Status durchläuft <b>offen → wird ausgewertet → ausgewertet</b>. Danach steht meist „Freigabe offen".</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Erkenntnisse freigeben</div>In den <b>Freigaben</b> bestätigst du die Video-Erkenntnisse – dann sind sie in der Datenbasis.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Video-Warteschlange · Statusfluss</div>
+  <div class="fig-body">
+    <div class="status-flow">
+      <span class="pill o">offen</span><span class="arrow">→</span>
+      <span class="pill w">wird ausgewertet</span><span class="arrow">→</span>
+      <span class="pill d">ausgewertet</span><span class="arrow">→</span>
+      <span class="pill d" style="background:#e6f0ff;color:#1c4e8a;border-color:#cfe0ff">Freigabe offen</span>
+    </div>
+    <div style="font-size:8.6pt;color:#8595a8;margin-top:9px">Die Auswertung startet automatisch (Prüfung alle 60 Sek.). „Freigabe offen" verweist auf das Modul Freigaben.</div>
+  </div>
+</div>
+<div class="cap">Der Statusfluss eines Videos in der Warteschlange – von „offen" bis „Freigabe offen".</div>
+
+<div class="box ki"><div class="bt">✨ KI &amp; der Claude-Max-Weg bei Videos</div>
+<b>Auswertung (das Herzstück):</b> Das Anschauen und Fakten-Extrahieren übernimmt der <b>lokale Runner über Claude Max</b> (via <i class="fn">/watch</i>) – vollautomatisch und <b>ohne API-Kosten</b>. Alternativ kopierst du mit „/watch kopieren" den Befehl selbst in eine Claude-Code-Sitzung.<br>
+<b>Priorisierung (optional):</b> Bei vielen Videos ordnet die KI (<i class="fn">ranking-proxy</i>) sie nach <b>Relevanz (0–10)</b>.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg</div>Die Auswertung ist ohnehin kostenfrei (Max-Runner). Nur die optionale Priorisierung nutzt die API – wer spart, fügt Videos direkt in die Warteschlange ein.</div></div>
+
+<div class="box rules"><div class="bt">⚠ Ein Crawl muss zuerst laufen</div>Videos lassen sich erst <b>priorisieren/auswerten, wenn die Website gecrawlt wurde</b> (Stufe 3) – ohne gesicherte Fakten kein Video (Halluzinationsschutz).</div>
+
+<!-- ================= KAPITEL 5 ================= -->
+<h2 class="ch">Stufe 3 – Daten sammeln (Crawl)</h2>
+<div class="ch-line"></div>
+
+<p>Der <b>Crawl</b> liest die Hersteller-Website automatisch aus und bildet die <b>Faktenbasis</b> für alles Weitere. Er ist der wichtigste Halluzinationsschutz: Ohne gecrawlte Fakten darf später nichts angereichert oder priorisiert werden.</p>
+
+<h3>Den Crawl starten</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Starten</div>Im Produkt auf <b>„Crawl &amp; Anreichern"</b> (oder im Crawl-Monitor „Crawl starten"). Einmal bestätigen – dann läuft die echte Pipeline im Hintergrund. Du kannst weiterarbeiten.</div></div>
+</div>
+<div class="box note"><div class="bt">Bewusst starten</div>Der Crawl nutzt kostenpflichtige Dienste (Firecrawl + KI). Starte ihn gezielt, nicht bei jeder Kleinigkeit neu – bei echten Website-Änderungen aber ruhig erneut.</div>
+
+<h3>Was die Pipeline automatisch macht</h3>
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Crawl-Pipeline (läuft automatisch)</div>
+  <div class="fig-body">
+    <div class="flow" style="flex-wrap:wrap">
+      <div class="fn"><div class="fi">1</div>Seiten ermitteln</div>
+      <div class="fn"><div class="fi">2</div>Seiten crawlen</div>
+      <div class="fn"><div class="fi">3</div>Inhalt extrahieren</div>
+      <div class="fn"><div class="fi">4</div>Kategorie</div>
+    </div>
+    <div class="flow" style="margin-top:8px">
+      <div class="fn"><div class="fi">5</div>Funktionen · Preise · Integrationen</div>
+      <div class="fn"><div class="fi">6</div>Canonical-Mapping</div>
+      <div class="fn"><div class="fi">7</div>Validierung &amp; Reifegrad</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die sieben automatischen Schritte des Crawls – von der Seitenauswahl bis zum gesetzten Reifegrad.</div>
+
+<div class="box ki"><div class="bt">✨ KI-Funktionen im Crawl</div>
+Die KI übernimmt das <b>Extrahieren</b> der Fakten (Claude), die <b>Kategorie-Zuordnung</b> und das <b>Canonical-Mapping</b> der Funktionen (<i class="fn">canonical-mapping</i>). Sichere Zuordnungen laufen automatisch, unsichere landen als Grenzfälle in der Feature-Inbox.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg</div>Der Crawl selbst nutzt die kostenpflichtige Pipeline. Die <b>Nachbearbeitung</b> – das Zuordnen offener Begriffe – erledigst du danach in der Feature-Inbox per Button <b>„Über Claude Max"</b> kostenfrei (Kapitel 6).</div></div>
+
+<h3>Den Crawl prüfen</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Status im Crawl-Monitor</div>Prüfe, ob der Status auf <b>„fertig"</b> steht und ob Funktionen und Preise erkannt wurden.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Kategorie prüfen</div>Bei hoher Sicherheit übernimmt die KI die Kategorie automatisch. Ist sie <b>nicht eindeutig</b>, musst du sie selbst wählen (zwingend).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Offene Begriffe zuordnen</div>Nicht sicher zugeordnete Funktionen liegen in der <b>Feature-Inbox</b> – siehe Kapitel 6.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Validieren</div>Der Button <b>„Validieren"</b> zeigt eine Checkliste (Pflichtfelder, Funktionen gemappt, Preise erfasst) mit <b>ok / Warnungen / Fehler</b>.</div></div>
+</div>
+
+<div class="box gate"><div class="bt">🛡️ Warum das wichtig ist</div>Ohne erfolgreichen Crawl bleibt <b>Stufe 3</b> offen und Folge-Schritte wie die Video-Priorisierung sind gesperrt. Erst mit gecrawlten Fakten geht es weiter.</div>
+
+<!-- ================= KAPITEL 6 ================= -->
+<h2 class="ch">Stufe 4 – Ordnen &amp; ergänzen</h2>
+<div class="ch-line"></div>
+
+<p>Jetzt bringst du die gesammelten Daten in Form: Du ordnest die gefundenen <b>Funktionen</b> zu und ergänzt die <b>Tarife</b>. Kern dieser Stufe ist das <b>Feature-Wörterbuch</b>.</p>
+
+<h3>Was ist das Feature-Wörterbuch?</h3>
+<div class="box principle"><div class="bt">★ Canonical &amp; Synonyme</div>
+Jedes Programm nennt dieselbe Funktion anders. Das Wörterbuch bündelt diese Rohnamen unter einem <b>Canonical</b> – einem tool-neutralen Standard-Namen. Die einzelnen Programm-Bezeichnungen hängen als <b>Synonyme</b> daran. Nur so kann softwio Programme fair vergleichen. <br><i>Beispiel:</i> Canonical „Automatische Belegerkennung" bündelt „Beleg-Scan", „OCR-Erfassung" und „Smart Capture".</div>
+
+<h3>Die Feature-Inbox</h3>
+<p>Beim Crawl und bei Videos entstehen neue Feature-Begriffe. Sichere übernimmt das System automatisch, unsichere landen in der <b>Feature-Inbox</b> (rote Zahl in der Navigation). Dort ordnest du jeden Begriff zu – auf drei Wegen.</p>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Feature-Inbox · eine Karte</div>
+  <div class="fig-body">
+    <div class="mcard">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-weight:700;font-size:9.6pt">„Beleg-Scan"</span>
+        <span class="chip" style="margin:0">Funktion</span>
+        <span style="margin-left:auto;font-size:8.2pt;color:#8595a8">Quelle: Crawl</span>
+      </div>
+      <div class="kirec">
+        <div class="kh"><span>✨ KI-Empfehlung</span> <span class="kk">88 %</span></div>
+        <div style="margin-top:2px">Zusammenführen mit <b>Automatische Belegerkennung</b></div>
+        <div style="font-size:8.2pt;color:#6b7a8d;margin-top:1px">Begründung: gleiche Funktion, anderer Produktname.</div>
+      </div>
+      <div style="margin-top:7px">
+        <span style="font-size:8.4pt;color:#8595a8">Vorschläge: </span>
+        <span class="chip"><b>Automatische Belegerkennung</b> <span class="sc">88 %</span> +</span>
+        <span class="chip">Belegverwaltung <span class="sc">41 %</span> +</span>
+      </div>
+      <div style="margin-top:7px;display:flex;gap:6px;font-size:8.6pt">
+        <span style="border:1px solid #d5deea;border-radius:6px;padding:3px 9px">↪ Zusammenführen mit …</span>
+        <span style="border:1px solid #d5deea;border-radius:6px;padding:3px 9px">+ Neu anlegen</span>
+        <span style="border:1px solid #d5deea;border-radius:6px;padding:3px 9px">🗑 Verwerfen</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Eine Inbox-Karte: Rohname, Quelle, KI-Empfehlung mit Konfidenz, ähnliche Vorschläge (mit %) und die drei Aktionen.</div>
+
+<h3>Die drei Wege, einen Begriff zuzuordnen</h3>
+<ol>
+  <li><b>Zusammenführen mit …</b> – passt der Begriff zu einem bestehenden Canonical, Vorschlag anklicken oder im Dropdown wählen. Der Rohname wird als Synonym ergänzt.</li>
+  <li><b>Neu anlegen</b> – gibt es keinen passenden Canonical, legst du einen neuen an.</li>
+  <li><b>Verwerfen</b> – nur, wenn es <b>kein echtes Feature</b> ist (Marketing-Floskel). Der Begriff wird gelöscht.</li>
+</ol>
+
+<div class="box ki"><div class="bt">✨ KI &amp; der Claude-Max-Weg</div>
+<b>„KI-Empfehlungen laden"</b> (<i class="fn">canonical-mapping</i>) prüft alle offenen Begriffe gegen das Wörterbuch und empfiehlt Zusammenführen oder Neuanlage – mit <b>Konfidenz in %</b> und Begründung. Du übernimmst einzeln oder mehrere auf einmal. Angelegt wird nichts ohne deine Bestätigung.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg über Claude Max</div>Der Button <b>„Über Claude Max"</b> kopiert einen fertigen Befehl für deine Claude-Code-Sitzung – die Vorschläge entstehen dann kostenfrei über den Max-Plan. Ganz ohne KI geht es auch: Vorschläge/Dropdown von Hand nutzen.</div></div>
+
+<h3>Das Wörterbuch verwalten</h3>
+<p>Unter <b>Feature-Wörterbuch</b> siehst du alle Canonicals mit Kategorie, Synonymen und der Zahl zugeordneter Tools. Du kannst <b>bearbeiten</b> (Name/Kategorie/Synonyme), <b>zusammenführen</b> (zwei Canonicals vereinen) und <b>löschen</b> (die Features wandern dann zurück in die Inbox – nichts geht verloren).</p>
+
+<div class="box gate"><div class="bt">🛡️ Warum das wichtig ist</div>Solange ein Programm <b>offene Begriffe</b> hat, bleibt Stufe 4 offen – das Produkt erreicht keine 100 %. Ziel: <b>0 offene Funktionen</b>.</div>
+
+<!-- ================= KAPITEL 7 ================= -->
+<h2 class="ch">Stufe 5 – Belegen</h2>
+<div class="ch-line"></div>
+
+<p>In dieser Stufe sammelst du die <b>Nachweise</b>: echte Nutzerbewertungen und Forenbeiträge, Quellen und das Logo. So ist am Ende jede Aussage belegt.</p>
+
+<h3>Bewertungen &amp; Forenbeiträge</h3>
+<p>Aus gesammelten Meinungen erstellt die KI eine <b>Synthese</b>: Gesamtstimmung plus die Top-Stärken und Top-Schwächen. Sie fließt in den Artikel-Abschnitt „Nutzerstimmen" und in die redaktionelle Bewertung.</p>
+
+<div class="box tip"><div class="bt">🔒 Datenschutz – wichtig und beruhigend</div>Ausgewertet wird <b>ausschließlich der Inhalt</b> – keine Zitate, Namen oder Daten. Rohtext und Screenshots werden <b>nicht gespeichert</b>. Doppelte Bewertungen (gleicher Inhalt) werden automatisch übersprungen.</div>
+
+<h4>Zwei Quellenarten</h4>
+<div class="grid2">
+  <div class="role"><b>Nutzerbewertungen</b>G2 · Trustpilot · Capterra · OMR – klassische Bewertungsportale.</div>
+  <div class="role"><b>Community-Diskussionen</b>Reddit · Foren – das sind die <b>Forenbeiträge</b>.</div>
+</div>
+<p style="margin-top:8px">Wähle vor dem Einfügen im Dropdown „Quelle" die passende Art – beide werden getrennt ausgewertet.</p>
+
+<h4>In 5 Schritten</h4>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Finden</div>Über die Buttons <b>Google · Trustpilot · G2 · Capterra · OMR</b> die Suche öffnen (neuer Tab); für Foren zusätzlich auf Reddit/Foren suchen.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Quelle wählen</div>Im Dropdown Nutzerbewertungen oder Community/Foren festlegen.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Einfügen</div>Text einfügen (Strg+V) und/oder Screenshots hineinziehen.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Auswerten (Vorschau)</div>Die KI liest jede Bewertung einzeln aus und zeigt Tenor (👍/➖/👎) plus Empfehlung – noch nichts gespeichert.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Übernehmen &amp; Synthese</div>Speichert die Bewertungen und erstellt/aktualisiert die Gesamt-Synthese.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Bewertungs-Synthese (Ergebnis)</div>
+  <div class="fig-body">
+    <div style="font-size:9.2pt;margin-bottom:8px">Gesamtstimmung: <b>überwiegend positiv</b> · aus 84 Bewertungen</div>
+    <div class="grid2">
+      <div>
+        <div style="font-size:8.6pt;font-weight:800;color:#1c7a4d;margin-bottom:4px">STÄRKEN</div>
+        <div style="font-size:8.8pt;margin-bottom:3px">1. Einfache Bedienung</div><div class="synbar"><span style="width:90%;background:#27a567"></span></div>
+        <div style="font-size:8.8pt;margin:5px 0 3px">2. Guter Support</div><div class="synbar"><span style="width:74%;background:#27a567"></span></div>
+      </div>
+      <div>
+        <div style="font-size:8.6pt;font-weight:800;color:#c1121f;margin-bottom:4px">SCHWÄCHEN</div>
+        <div style="font-size:8.8pt;margin-bottom:3px">1. Preis im oberen Tarif</div><div class="synbar"><span style="width:60%;background:#e5484d"></span></div>
+        <div style="font-size:8.8pt;margin:5px 0 3px">2. Wenige Integrationen</div><div class="synbar"><span style="width:44%;background:#e5484d"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die fertige Synthese: Gesamtstimmung sowie Top-Stärken und Top-Schwächen, aus den ausgewerteten Meinungen verdichtet.</div>
+
+<div class="box ki"><div class="bt">✨ KI-Funktionen &amp; der „i"-Weg</div>
+<b>Auslesen</b> (<i class="fn">bewertungen-auslesen</i>) bewertet jede Meinung inhaltlich und erkennt Dubletten; <b>Synthese</b> (<i class="fn">bewertungen-synthese</i>) verdichtet alles. Verwandt: der Button <b>„Externe Bewertungen holen"</b> (<i class="fn">bewertungen-extern</i>) sucht per Websuche die Stern-Werte von G2/Capterra/Trustpilot.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg</div>Neben „Auswerten" gibt es ein kleines <b>„i"-Symbol</b>. Es kopiert einen fertigen <b>Max-Plan-Prompt</b> – füge ihn mit den Bewertungen in deine Claude-Code-Sitzung ein. Claude wertet kostenfrei aus.</div></div>
+
+<h3>Quellen, Logo &amp; AppSumo</h3>
+<p>Ergänze außerdem die <b>Quellen</b>, setze das <b>Logo</b> (aus Stufe 2, hier Pflicht) und prüfe den <b>AppSumo-Deal</b> (ob es aktuell ein Lifetime-Angebot gibt).</p>
+
+<div class="box gate"><div class="bt">🛡️ Erledigt, wenn</div><b>Quellen &gt; 0</b>, eine <b>Bewertungs-Synthese</b> und das <b>Logo</b> vorhanden sind. Sonst bleibt Stufe 5 offen.</div>
+
+<!-- ================= KAPITEL 8 ================= -->
+<h2 class="ch">Stufe 6 – Prüfen &amp; freigeben</h2>
+<div class="ch-line"></div>
+
+<p>Hier triffst du die Entscheidungen, die das System nicht allein treffen darf. Du bist die <b>letzte Kontrollinstanz</b> vor der Datenbasis.</p>
+
+<h3>Was sind Freigaben?</h3>
+<div class="box principle"><div class="bt">★ Grenzfälle vom Auto-Watcher</div>
+Beim automatischen Auslesen findet das System laufend neue Erkenntnisse. Sichere übernimmt es selbst. <b>Grenzfälle</b>, bei denen es unsicher ist, hält der <b>Auto-Watcher</b> zurück und legt sie dir hier zur Entscheidung vor – so kommt nichts Unsicheres ungeprüft in die Daten.</div>
+
+<h3>In 5 Schritten entscheiden</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Freigabe öffnen</div>Auf die Zeile klicken (Menü „Freigaben", rote Zahl = offene Fälle).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Erkenntnis lesen</div>Die fett dargestellte Beschreibung ist die konkrete Erkenntnis.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Beleg prüfen (Kernschritt)</div>Lies „Warum Grenzfall", <b>„Beleg aus der Quelle"</b> (das echte Zitat) und „Ähnlich zu". Frage: Deckt der Beleg die Erkenntnis wirklich?</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Entscheiden</div>Eine Option wählen (siehe Abbildung).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Ergebnis</div>Der Fall verschwindet, die rote Zahl zählt herunter.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Freigabe · deine Entscheidung</div>
+  <div class="fig-body">
+    <div class="grid2">
+      <div style="border:1px solid #b7e9cd;background:#eefaf2;border-radius:9px;padding:9px 11px;font-size:9pt">
+        <div style="font-weight:800;color:#16a34a;margin-bottom:2px">✔ Übernehmen</div>
+        Die Erkenntnis wird <b>in die Datenbasis übernommen</b> (angelegt oder aktualisiert). Nur wählen, wenn der Beleg sie klar deckt.
+      </div>
+      <div style="border:1px solid #dfe4ea;background:#f6f8fb;border-radius:9px;padding:9px 11px;font-size:9pt">
+        <div style="font-weight:800;color:#6b7a8d;margin-bottom:2px">● Nicht übernehmen</div>
+        Nur <b>als erledigt abhaken</b> – nichts wird gespeichert. Für Unklares, Doppeltes oder Falsches. Im Zweifel diese Option.
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Die zwei Grundtypen der Entscheidung: in die Daten übernehmen (grün) oder nur abhaken/verwerfen (grau).</div>
+
+<div class="box rules"><div class="bt">⚠ Deine Pflichten</div>
+<ul style="margin:0;padding-left:17px">
+<li><b>Nur mit Beleg übernehmen</b> (100 % faktenbasiert).</li>
+<li><b>Im Zweifel nicht übernehmen</b> – weglassen ist sicherer als raten.</li>
+<li><b>Dubletten vermeiden</b> – bei „Ähnlich zu" lieber zusammenführen.</li>
+<li><b>Nichts ergänzen</b>, was nicht in der Erkenntnis steht.</li>
+</ul></div>
+
+<h3>Der zweite Teil: keine unbelegten Fakten</h3>
+<p>Dieselbe Stufe verlangt zusätzlich, dass es <b>0 unbelegte Fakten</b> gibt. Das prüft der Anti-Halluzinations-Beleg-Check spätestens beim Veröffentlichen (Kapitel 10). Offene Punkte klärst du hier – korrigieren oder, wenn sicher korrekt, „Geprüft" setzen.</p>
+
+<div class="box gate"><div class="bt">🛡️ Warum das wichtig ist</div>Solange auch nur eine Freigabe offen ist oder ein Fakt unbelegt bleibt, kommt das Produkt <b>nicht auf 100 %</b> und kann nicht veröffentlicht werden.</div>
+
+<!-- ================= KAPITEL 9 ================= -->
+<h2 class="ch">Stufe 7 – Schlusscheck</h2>
+<div class="ch-line"></div>
+
+<p>Der Schlusscheck ist eine reine <b>Kontrollstufe</b> – hier gibst du nichts ein. Das Cockpit rechnet zusammen, ob alle Pflichtstufen erledigt sind, und zeigt den Fortschritt als <b>100 %</b> an, sobald alles passt.</p>
+
+<h3>Wann sind es 100 %?</h3>
+<p>Der Fortschritt erreicht 100 %, wenn diese Pflichtstufen erledigt sind:</p>
+<table class="t">
+  <tr><th>Stufe</th><th>Erledigt, wenn …</th></tr>
+  <tr><td>1 · Anlegen</td><td>Name, Hersteller, Hersteller-URL, Kategorie gesetzt</td></tr>
+  <tr><td>3 · Daten sammeln</td><td>Crawl hat Funktionen oder Preise geliefert</td></tr>
+  <tr><td>4 · Ordnen</td><td>0 offene Funktionen, Funktionen + Tarife vorhanden</td></tr>
+  <tr><td>5 · Belegen</td><td>Quellen &gt; 0, Bewertungs-Synthese und Logo vorhanden</td></tr>
+  <tr><td>6 · Prüfen</td><td>keine offene Freigabe, kein unbelegter Fakt</td></tr>
+</table>
+
+<div class="box note"><div class="bt">Und Bilder &amp; Videos (Stufe 2)?</div><b>Empfohlen, aber nicht blockierend</b> für die 100 % – mit Ausnahme des Logos (das steckt in Stufe 5). Steht etwas auf „offen", geh kurz zur betreffenden Stufe zurück; der „Weiter"-Button und die Checkliste zeigen dir den Weg.</div>
+
+<!-- ================= KAPITEL 10 ================= -->
+<h2 class="ch">Stufe 8 – Veröffentlichen &amp; Portal-Build</h2>
+<div class="ch-line"></div>
+
+<p>Der große Moment: den fertigen Artikel <b>live schalten</b> und das <b>Portal neu bauen</b>, damit die Seite öffentlich erscheint. Das geschieht in zwei Teilen.</p>
+
+<h3>Teil 1 · Veröffentlichen</h3>
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Content prüfen</div>Im Reiter <b>Content</b> Artikel und Produkt ein letztes Mal durchsehen.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">„Jetzt veröffentlichen"</div>Zuerst läuft der <b>Anti-Halluzinations-Beleg-Check</b> (~1 Min): jeder Fakt wird gegen die Quellen geprüft.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Live schalten</div>Nach bestandenem Check bestätigst du. Die Bewertung wird frisch berechnet, der Status springt auf <b>live</b> – und der Portal-Build startet automatisch.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Veröffentlichungs-Gate &amp; Portal-Build</div>
+  <div class="fig-body">
+    <div class="status-flow" style="margin-bottom:11px">
+      <span class="pill w">„Jetzt veröffentlichen"</span><span class="arrow">→</span>
+      <span style="border:1px solid #ffc9c9;background:#fff5f5;color:#c1121f;border-radius:20px;padding:3px 11px;font-size:8.8pt;font-weight:700">🛡️ Beleg-Check</span><span class="arrow">→</span>
+      <span class="pill d">Status: live</span>
+    </div>
+    <div style="font-size:8.4pt;color:#c1121f;margin-bottom:10px">Gibt es Fakten ohne Quell-Zitat → „Veröffentlichen gesperrt". Erst bei 0 offenen geht es weiter.</div>
+    <div class="flow">
+      <div class="fn"><div class="fi">1</div>SSoT lesen</div>
+      <div class="fn"><div class="fi">2</div>Astro bauen</div>
+      <div class="fn"><div class="fi">3</div>Assets &amp; Sitemap</div>
+      <div class="fn"><div class="fi">4</div>Deploy</div>
+    </div>
+    <div style="font-size:8.4pt;color:#8595a8;margin-top:8px">Der Portal-Build (~1–2 Min) macht die Live-Artikel öffentlich sichtbar.</div>
+  </div>
+</div>
+<div class="cap">Oben das Schutz-Gate beim Veröffentlichen, unten die vier Schritte des Portal-Builds.</div>
+
+<div class="box ki"><div class="bt">✨ KI-Funktionen beim Veröffentlichen</div>
+Zwei KI-Schritte sichern die Qualität: der <b>Beleg-Check</b> (<i class="fn">beleg-extrahieren</i>) prüft jede Aussage gegen die Quellen, die <b>Bewertung</b> (<i class="fn">bewertung-berechnen</i>) berechnet die aktuelle Note.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg über Claude Max</div>Die <b>Erstellung des Contents</b> davor (Erzeugen / Optimieren / Prüfen mit <i>inhalt-generieren</i>, <i>-optimieren</i>, <i>-pruefen</i>) kann komplett über den <b>Max-Plan</b> laufen (Hybrid, ohne API-Kosten). Der Portal-Build selbst nutzt keine KI und kostet nichts extra.</div></div>
+
+<h3>Teil 2 · Portal-Build</h3>
+<p>Nach dem Veröffentlichen startet der Build von selbst. Manuell geht es über das Menü <b>Portal → „Alle Märkte bauen"</b> bzw. „Portal jetzt bauen (DE)". Ein Fenster zeigt den Fortschritt und meldet nach ~1–2 Minuten <b>„Build erfolgreich – Portal ist live"</b>. Über „Portal öffnen" kontrollierst du das Ergebnis.</p>
+
+<div class="box rules"><div class="bt">⚠ Wichtige Punkte</div>
+<ul style="margin:0;padding-left:17px">
+<li><b>Nur live erscheint:</b> Ein Artikel muss den Status „live" haben, sonst taucht er im Portal nicht auf.</li>
+<li><b>Build abwarten:</b> ~1–2 Min, bis die Seite wirklich aktualisiert ist.</li>
+<li><b>Nach Änderungen neu bauen:</b> Auch spätere Korrekturen werden erst mit einem neuen Build sichtbar.</li>
+</ul></div>
+
+<!-- ================= KAPITEL 11 ================= -->
+<h2 class="ch">Stufe 9 – Pflege &amp; Distribution</h2>
+<div class="ch-line"></div>
+
+<p>Nach dem Go-live bleibt das Produkt in <b>Pflege</b> und du kannst zusätzlich <b>Reichweite</b> schaffen. Diese Stufe ist eine Dauerstufe – nichts ist Pflicht.</p>
+
+<h3>Pflege</h3>
+<p>Das Cockpit hält die Daten über <b>Auto-Checks</b> frisch (z. B. der AppSumo-Deal-Check). Ändert der Hersteller Preise oder Funktionen, wiederholst du kurz die Stufen 3–4. Aktualität ist ein echter Ranking-Faktor.</p>
+
+<h3>Distribution – Social-Content</h3>
+<p>Aus dem fertigen Artikel erzeugt das Cockpit <b>Reichweiten-Pakete</b> – faktentreu, ohne neue Behauptungen. Zu finden im Reiter <b>Distribution</b>.</p>
+
+<div class="box gate"><div class="bt">🛡️ Erst ab 100 %</div>Der Reiter ist gesperrt, bis der Fortschritt 100 % erreicht und der Artikel live ist – weil die Pakete aus dem geprüften Artikel entstehen. So verbreiten auch YouTube &amp; Co. nur belegte Aussagen.</div>
+
+<div class="steps">
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Reiter öffnen</div>Im Produkt den Reiter Distribution (ab 100 % freigeschaltet).</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Paket generieren</div>Die KI erstellt in ~30–60 s vier Bausteine.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Bearbeiten &amp; kopieren</div>Felder anpassen (automatisch gespeichert), pro Baustein „Kopieren".</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Freigeben</div>Mit „Freigeben" auf <i>freigegeben</i> setzen; „Neu generieren" jederzeit möglich.</div></div>
+  <div class="stp"><span class="n"></span><div class="c"><div class="h">Posten (manuell)</div>Texte selbst auf den Plattformen veröffentlichen – das Cockpit postet nicht automatisch.</div></div>
+</div>
+
+<div class="fig">
+  <div class="fig-win"><span class="dots"><s style="background:#ff6058"></s><s style="background:#ffbd2e"></s><s style="background:#28c940"></s></span> Die vier Distributions-Pakete</div>
+  <div class="fig-body">
+    <div class="grid2">
+      <div class="role"><b>YouTube-Skript</b>Titel + fertiges Skript.</div>
+      <div class="role"><b>3 Shorts / Reels</b>Je Hook + Text.</div>
+      <div class="role"><b>LinkedIn-Post</b>Fertiger Beitrag.</div>
+      <div class="role"><b>Newsletter</b>Betreff + Preheader + Body.</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Aus einem Artikel entstehen vier fertige Pakete für die wichtigsten Kanäle.</div>
+
+<div class="box ki"><div class="bt">✨ KI-Funktion &amp; der Claude-Max-Weg</div>
+Die Pakete erzeugt die KI (<i class="fn">social-generieren</i>) streng faktentreu, nur aus dem live geschalteten Artikel – kein neuer Fakt.
+<div class="box max" style="margin:8px 0 0"><div class="bt">💶 Günstiger Weg</div>Einen eigenen Knopf gibt es hier nicht – aber weil alles nur aus dem fertigen Artikel entsteht, kannst du die Pakete genauso in einer Claude-Code-Sitzung (Max-Plan) erzeugen lassen: den Live-Artikel nennen und die vier Pakete faktentreu anfordern.</div></div>
+
+<div class="box rules"><div class="bt">⚠ Faktentreu bleiben</div>Beim Bearbeiten <b>keine neuen Behauptungen</b> ergänzen – nur kürzen, glätten, zuspitzen. Vor dem Posten kurz gegenlesen.</div>
+
+<!-- ================= KAPITEL 12 ================= -->
+<h2 class="ch">KI-Funktionen &amp; der günstige Claude-Max-Weg</h2>
+<div class="ch-line"></div>
+
+<p>Dieses Kapitel fasst <b>alle KI-Funktionen</b> des Cockpits zusammen und zeigt, wo es einen <b>kostenfreien Weg über Claude Max</b> gibt. Das Prinzip: KI-Funktionen laufen normalerweise über eine kostenpflichtige Schnittstelle (API); im <b>Hybrid-Sparbetrieb</b> erledigt Claude im Max-Plan dieselbe Arbeit kostenfrei – du gibst das Ergebnis frei.</p>
+
+<div class="box principle"><div class="bt">★ So funktioniert der i-Weg</div>Wo ein Knopf existiert (z. B. „Über Claude Max" oder das kleine „i"-Symbol), <b>kopiert er einen fertigen Befehl</b>. Diesen fügst du in eine <b>Claude-Code-Sitzung</b> ein; Claude erledigt die Aufgabe über den Max-Plan und legt dir das Ergebnis zur Freigabe vor. Nichts wird ungefragt gespeichert.</div>
+
+<table class="t">
+  <tr><th>KI-Funktion</th><th>Was sie bewirkt</th><th>Günstiger Weg (i / Max)</th></tr>
+  <tr><td><i class="fn">crawl-starten</i></td><td>Website auslesen &amp; Fakten extrahieren (Firecrawl + Claude)</td><td>Pipeline kostenpflichtig; Nachbearbeitung frei (s. u.)</td></tr>
+  <tr><td><i class="fn">canonical-mapping</i></td><td>Funktionen dem Wörterbuch zuordnen</td><td>Button <b>„Über Claude Max"</b> in der Feature-Inbox</td></tr>
+  <tr><td><i class="fn">bild-beschreiben</i></td><td>Bild-Beschreibung / Alt-Text (✨)</td><td>Beschreibung einfach <b>selbst eintippen</b></td></tr>
+  <tr><td>/watch-Runner</td><td>Video anschauen &amp; Fakten extrahieren</td><td>Läuft <b>ohnehin über Max</b> (kostenfrei)</td></tr>
+  <tr><td><i class="fn">ranking-proxy</i></td><td>Videos nach Relevanz priorisieren</td><td>Videos direkt in die Warteschlange (Ranking überspringen)</td></tr>
+  <tr><td><i class="fn">bewertungen-auslesen</i></td><td>Bewertungen inhaltlich auswerten</td><td><b>„i"-Symbol</b> kopiert Max-Prompt</td></tr>
+  <tr><td><i class="fn">bewertungen-synthese</i></td><td>Stärken/Schwächen-Synthese bilden</td><td>zusammen mit „i"-Weg oben</td></tr>
+  <tr><td><i class="fn">bewertungen-extern</i></td><td>Externe Stern-Werte (G2/Capterra/Trustpilot) suchen</td><td>—</td></tr>
+  <tr><td><i class="fn">firmendaten-extrahieren</i></td><td>Firmendaten aus dem Impressum</td><td>—</td></tr>
+  <tr><td><i class="fn">inhalt-generieren / -optimieren / -pruefen</i></td><td>Artikel erzeugen, optimieren, faktenprüfen</td><td><b>Hybrid</b>: komplett über Max möglich</td></tr>
+  <tr><td><i class="fn">beleg-extrahieren</i></td><td>Anti-Halluzinations-Beleg-Check</td><td>—</td></tr>
+  <tr><td><i class="fn">bewertung-berechnen</i></td><td>Redaktionelle Gesamtnote berechnen</td><td>—</td></tr>
+  <tr><td><i class="fn">social-generieren</i></td><td>Social-/Newsletter-Pakete erzeugen</td><td>über Claude-Code (Max) möglich</td></tr>
+  <tr><td><i class="fn">portal-build-ausloesen</i></td><td>Portal bauen &amp; deployen</td><td>keine KI · keine API-Kosten</td></tr>
+</table>
+
+<div class="box max"><div class="bt">💶 Faustregel</div>Wo ein <b>„Über Claude Max"</b>-Button oder ein <b>„i"</b> steht, kannst du kostenfrei über den Max-Plan arbeiten. Reine Zuordnungen und Beschreibungen gehen ohnehin oft <b>von Hand ganz ohne KI</b>. Der Portal-Build kostet nie extra.</div>
+
+<!-- ================= KAPITEL 13 ================= -->
+<h2 class="ch">Regeln, Gates &amp; Glossar</h2>
+<div class="ch-line"></div>
+
+<h3>Die vier eisernen Regeln</h3>
+<div class="box rules"><div class="bt">⚠ Gelten in jeder Stufe</div>
+<ul style="margin:0;padding-left:17px">
+<li><b>Nie erfinden:</b> ausschließlich belegte Fakten – im Zweifel Feld leer lassen.</li>
+<li><b>Kein „Test"-Wort</b> (Test, getestet, Testsieger …), solange die Software nicht wirklich selbst getestet wurde.</li>
+<li><b>Preise nur belegt:</b> Rabatte klar als Rabatt kennzeichnen, keine Regulärpreise raten.</li>
+<li><b>Sauberes Deutsch</b> geht vor SEO-Score – keine englischen Werbe-Floskeln.</li>
+</ul></div>
+
+<h3>Was die Veröffentlichung blockiert</h3>
+<div class="box gate"><div class="bt">🛡️ Die zwei Blockaden</div>
+<b>1) Unter 100 %:</b> Ohne Stammdaten, Crawl-Daten, geordnete Funktionen (0 offen), Quellen + Bewertungs-Synthese + Logo oder mit offenen Freigaben bleibt das Produkt unter 100 %.<br>
+<b>2) Der harte Beleg-Check:</b> Beim Veröffentlichen wird jeder Fakt gegen ein Quell-Zitat geprüft. Schon <b>ein einziger unbelegter Fakt</b> → „Veröffentlichen gesperrt". Erst bei 0 unbelegten Fakten geht der Artikel live.</div>
+
+<h3>Glossar</h3>
+<table class="t">
+  <tr><th>Begriff</th><th>Bedeutung</th></tr>
+  <tr><td>SSoT</td><td>„Single Source of Truth" – die gesicherte, belegte Datenbasis, aus der alle Inhalte stammen.</td></tr>
+  <tr><td>Crawl</td><td>Das automatische Auslesen einer Website (mit Firecrawl), um Fakten zu sammeln.</td></tr>
+  <tr><td>Canonical</td><td>Tool-neutraler Standard-Name einer Funktion im Feature-Wörterbuch.</td></tr>
+  <tr><td>Synonym</td><td>Die produktspezifische Bezeichnung, die an einen Canonical gehängt wird.</td></tr>
+  <tr><td>Feature-Inbox</td><td>Sammelstelle für noch nicht zugeordnete Feature-Begriffe.</td></tr>
+  <tr><td>Freigabe</td><td>Ein Grenzfall, den du bestätigen oder verwerfen musst, bevor er in die Daten kommt.</td></tr>
+  <tr><td>Auto-Watcher</td><td>Die Automatik, die sichere Fälle übernimmt und unsichere als Freigabe zurückhält.</td></tr>
+  <tr><td>Gate</td><td>Ein Schutz-Tor, das den nächsten Schritt blockiert, bis Bedingungen erfüllt sind.</td></tr>
+  <tr><td>Beleg-Check</td><td>Anti-Halluzinations-Prüfung: jeder Fakt muss ein Quell-Zitat haben.</td></tr>
+  <tr><td>Portal-Build</td><td>Der Vorgang, der die Website neu baut und veröffentlicht.</td></tr>
+  <tr><td>Reifegrad</td><td>Statuskennzeichen, wie vollständig die Daten eines Produkts sind.</td></tr>
+  <tr><td>NeuronWriter</td><td>Werkzeug zur Suchmaschinen-Optimierung des Textes (Content-Score).</td></tr>
+  <tr><td>Claude-Max-Weg (i-Weg)</td><td>Kostenfreie Alternative zu KI-API-Funktionen über den Max-Plan.</td></tr>
+</table>
+
+<h3>Mini-FAQ</h3>
+<p><b>Ich sehe eine rote Zahl – was tun?</b> Rote Zahlen bei „Freigaben" oder „Feature-Inbox" bedeuten offene Aufgaben. Klick drauf und arbeite sie ab (Kapitel 6 und 8).</p>
+<p><b>Warum komme ich nicht auf 100 %?</b> Eine Pflichtstufe ist noch offen. Die Stufenleiste und die Checkliste zeigen, welche – meist offene Funktionen, fehlende Quellen/Logo oder offene Freigaben.</p>
+<p><b>Meine Änderung erscheint nicht auf der Website.</b> Nach jeder Änderung muss das <b>Portal neu gebaut</b> werden (Kapitel 10). Und nur <b>live</b>-Artikel erscheinen überhaupt.</p>
+<p><b>Wie spare ich Kosten?</b> Nutze die <b>Claude-Max-Wege</b> (Kapitel 12): „Über Claude Max", das „i"-Symbol, manuelles Eintippen von Beschreibungen und das direkte Einreihen von Videos.</p>
+
+<div class="foot-note">softwio Cockpit · Benutzerhandbuch · Ausgabe Juli 2026 — Dieses Handbuch beschreibt den geführten 9-Stufen-Produkt-Workflow. Ergänzend gibt es im Hilfe-Menü acht themenbezogene Kurzanleitungen als PDF.</div>
+
+</body>
+</html>
